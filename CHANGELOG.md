@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.2
+
+Security and hardening release.
+
+- Replace registration confirmation storage with hashed long link tokens and hashed 8-digit manual codes.
+- Add rate limiting for registration verification and final details submission.
+- Add modern Nextcloud route attributes for public registration and password reset pages.
+- Catch mail delivery errors during the initial password reset request.
+- Limit declared Nextcloud compatibility to the tested major version.
+- Add documentation notes for pending-user login restrictions, app signing status, and bridge hardening.
+- Store rate-limit counters in a dedicated database table instead of app config values.
+- Harden the example bridge LDAP DN handling.
+- Bump app version to 0.1.2.
+
 ## 0.1.1
 
 Security and stability hardening release.

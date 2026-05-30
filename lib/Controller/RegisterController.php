@@ -10,10 +10,14 @@ use OCA\EnhancedRegistration\Service\PasswordResetService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http\RedirectResponse;
+use OCP\AppFramework\Http\Attribute\PublicPage;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\IRequest;
 use OCP\Mail\IMailer;
 use OCP\IURLGenerator;
 use OCP\IConfig;
+use OCP\IDBConnection;
 use Psr\Log\LoggerInterface;
 
 class RegisterController extends Controller {
@@ -26,6 +30,7 @@ class RegisterController extends Controller {
         private IMailer $mailer,
         private IURLGenerator $urlGenerator,
         private IConfig $config,
+        private IDBConnection $db,
         private LoggerInterface $logger
     ) {
         parent::__construct($appName, $request);
@@ -61,6 +66,40 @@ class RegisterController extends Controller {
         $params = array_merge($this->passwordPolicyTemplateParams(), $params);
 
         return new TemplateResponse("enhanced_registration", $template, $params, "guest");
+    }
+
+    private function safeRedirectUrl(string $url, string $fallback = '/login'): string {
+        $url = trim($url);
+        $fallback = trim($fallback) !== '' ? trim($fallback) : '/login';
+
+        if ($url === '') {
+            return $fallback;
+        }
+
+        if (str_contains($url, "\n") || str_contains($url, "\r")) {
+            return $fallback;
+        }
+
+        if (str_starts_with($url, '/') && !str_starts_with($url, '//')) {
+            return $url;
+        }
+
+        $parts = parse_url($url);
+        $scheme = strtolower((string)($parts['scheme'] ?? ''));
+        $host = strtolower((string)($parts['host'] ?? ''));
+
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '') {
+            return $fallback;
+        }
+
+        $serverHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+        $serverHost = explode(':', $serverHost)[0];
+
+        if ($serverHost !== '' && $host === $serverHost) {
+            return $url;
+        }
+
+        return $fallback;
     }
 
     private function brandName(): string {
@@ -171,8 +210,8 @@ class RegisterController extends Controller {
     }
 
 
-    private function sendRegistrationConfirmationMail(string $email, string $code): void {
-        $link = $this->urlGenerator->getAbsoluteURL("/index.php/apps/enhanced_registration/verify?code=" . urlencode($code));
+    private function sendRegistrationConfirmationMail(string $email, string $manualCode, string $linkToken): void {
+        $link = $this->urlGenerator->getAbsoluteURL("/index.php/apps/enhanced_registration/verify?code=" . urlencode($linkToken));
 
         $message = $this->mailer->createMessage();
         $message->setTo([$email]);
@@ -180,7 +219,7 @@ class RegisterController extends Controller {
             $this->mailTemplate('mail_confirm_subject', '{brand}: E-Mail bestätigen'),
             [
                 'brand' => $this->brandName(),
-                'code' => $code,
+                'code' => $manualCode,
                 'link' => $link,
             ]
         ));
@@ -200,7 +239,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             ),
             [
                 'brand' => $this->brandName(),
-                'code' => $code,
+                'code' => $manualCode,
                 'link' => $link,
             ]
         ));
@@ -323,7 +362,12 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             return null;
         }
 
+        $action = strtolower(trim($action));
         $identity = strtolower(trim($identity));
+
+        if ($action === '') {
+            $action = 'default';
+        }
 
         if ($identity === '') {
             $identity = 'anonymous';
@@ -333,23 +377,32 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         $windowSeconds = $this->rateLimitInt('rate_limit_window_minutes', 15, 1, 1440) * 60;
         $maxAttempts = $this->rateLimitInt('rate_limit_max_attempts', 5, 1, 100);
         $now = time();
+        $identityHash = hash('sha256', $identity);
 
-        $configKey = 'rl_' . substr(hash('sha256', $action . ':' . $identity), 0, 40);
-        $raw = $this->config->getAppValue('enhanced_registration', $configKey, '{}');
-        $state = json_decode($raw, true);
+        $cleanupBefore = $now - max($windowSeconds, $cooldown, 60) - 3600;
+        $cleanup = $this->db->getQueryBuilder();
+        $cleanup->delete('enhanced_rate_limits')
+            ->where($cleanup->expr()->lt('updated_at', $cleanup->createNamedParameter($cleanupBefore)))
+            ->executeStatement();
 
-        if (!is_array($state)) {
-            $state = [];
-        }
+        $query = $this->db->getQueryBuilder();
+        $query->select('*')
+            ->from('enhanced_rate_limits')
+            ->where($query->expr()->eq('action', $query->createNamedParameter($action)))
+            ->andWhere($query->expr()->eq('identity_hash', $query->createNamedParameter($identityHash)))
+            ->setMaxResults(1);
 
-        $windowStart = (int)($state['window_start'] ?? 0);
-        $last = (int)($state['last'] ?? 0);
-        $count = (int)($state['count'] ?? 0);
+        $row = $query->executeQuery()->fetchAssociative();
+
+        $id = $row ? (int)$row['id'] : 0;
+        $windowStart = $row ? (int)$row['window_start'] : 0;
+        $last = $row ? (int)$row['last_attempt'] : 0;
+        $count = $row ? (int)$row['attempt_count'] : 0;
 
         if ($windowStart <= 0 || ($now - $windowStart) >= $windowSeconds) {
             $windowStart = $now;
-            $count = 0;
             $last = 0;
+            $count = 0;
         }
 
         if ($cooldown > 0 && $last > 0 && ($now - $last) < $cooldown) {
@@ -361,13 +414,28 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             return 'Zu viele Anfragen. Bitte versuchen Sie es später erneut.';
         }
 
-        $state = [
-            'window_start' => $windowStart,
-            'last' => $now,
-            'count' => $count + 1,
-        ];
-
-        $this->config->setAppValue('enhanced_registration', $configKey, json_encode($state));
+        if ($id > 0) {
+            $update = $this->db->getQueryBuilder();
+            $update->update('enhanced_rate_limits')
+                ->set('window_start', $update->createNamedParameter($windowStart))
+                ->set('last_attempt', $update->createNamedParameter($now))
+                ->set('attempt_count', $update->createNamedParameter($count + 1))
+                ->set('updated_at', $update->createNamedParameter($now))
+                ->where($update->expr()->eq('id', $update->createNamedParameter($id)))
+                ->executeStatement();
+        } else {
+            $insert = $this->db->getQueryBuilder();
+            $insert->insert('enhanced_rate_limits')
+                ->values([
+                    'action' => $insert->createNamedParameter($action),
+                    'identity_hash' => $insert->createNamedParameter($identityHash),
+                    'window_start' => $insert->createNamedParameter($windowStart),
+                    'last_attempt' => $insert->createNamedParameter($now),
+                    'attempt_count' => $insert->createNamedParameter($count + 1),
+                    'updated_at' => $insert->createNamedParameter($now),
+                ])
+                ->executeStatement();
+        }
 
         return null;
     }
@@ -469,27 +537,27 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     }
 
 
-    /**
- * @PublicPage
- * @NoAdminRequired
- * @NoCSRFRequired
- */
     public function index(): TemplateResponse {
         return $this->noStoreTemplate('register');
     }
 
-    /**
- * @PublicPage
- * @NoAdminRequired
- * @NoCSRFRequired
- */
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function submitEmail(): TemplateResponse|RedirectResponse {
         $email = trim((string)$this->request->getParam("email"));
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->noStoreTemplate('register', [
+                'email' => $email,
+                'message' => 'Bitte geben Sie eine gültige E-Mail-Adresse ein.'
+            ], 'guest');
+        }
 
         if (!$this->isEmailDomainAllowed($email)) {
             return $this->noStoreTemplate('register', [
                 'email' => $email,
-                'message' => 'Registrierung mit dieser E-Mail-Domain ist nicht erlaubt.'
+                'message' => 'Diese E-Mail-Domain ist für die Registrierung nicht zugelassen.'
             ], 'guest');
         }
 
@@ -503,57 +571,39 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         }
 
         try {
-            $code = $this->registrationService->createRegistration($email);
+            $registrationTokens = $this->registrationService->createRegistration($email);
+            $this->sendRegistrationConfirmationMail(
+                $email,
+                (string)$registrationTokens['code'],
+                (string)$registrationTokens['token']
+            );
         } catch (\Throwable $e) {
+            $this->logger->warning($this->brandName() . ': registration confirmation failed', [
+                'email' => $email,
+                'error' => $e->getMessage(),
+            ]);
+
             return new RedirectResponse("/index.php/apps/enhanced_registration/already");
         }
 
-        $link = $this->urlGenerator->getAbsoluteURL("/index.php/apps/enhanced_registration/verify?code=" . urlencode($code));
-
-        $message = $this->mailer->createMessage();
-        $message->setTo([$email]);
-        $message->setSubject($this->renderMailTemplate(
-            $this->mailTemplate('mail_confirm_subject', '{brand}: E-Mail bestätigen'),
-            [
-                'brand' => $this->brandName(),
-                'code' => $code,
-                'link' => $link,
-            ]
-        ));
-        $message->setPlainBody($this->renderMailTemplate(
-            $this->mailTemplate(
-                'mail_confirm_body',
-                "Hallo,\n\nbitte bestätigen Sie Ihre Registrierung.\n\nBestätigungscode: {code}\n\nAlternativ können Sie diesen Link öffnen:\n{link}\n\nWenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren."
-            ),
-            [
-                'brand' => $this->brandName(),
-                'code' => $code,
-                'link' => $link,
-            ]
-        ));
-        $this->mailer->send($message);
         $this->audit('registration_code_requested', $this->auditEmailContext($email));
 
         return new RedirectResponse("/index.php/apps/enhanced_registration/checkmail?email=" . urlencode($email));
     }
 
 
-    /**
- * @PublicPage
- * @NoAdminRequired
- * @NoCSRFRequired
- */
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function checkMail(): TemplateResponse {
         return new TemplateResponse('enhanced_registration', 'checkmail', [
             'email' => (string)$this->request->getParam('email')
         ], 'guest');
     }
 
-    /**
- * @PublicPage
- * @NoAdminRequired
- * @NoCSRFRequired
- */
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function submitCode(): RedirectResponse {
         $code = trim((string)$this->request->getParam('code'));
         return new RedirectResponse('/index.php/apps/enhanced_registration/verify?code=' . urlencode($code));
@@ -565,11 +615,9 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
  * @NoCSRFRequired
  */
 
-    /**
-     * @PublicPage
-     * @NoAdminRequired
-     * @NoCSRFRequired
-     */
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function resendCode(): TemplateResponse {
         $email = trim((string)$this->request->getParam('email'));
 
@@ -589,8 +637,12 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         }
 
         try {
-            $code = $this->registrationService->resendRegistration($email);
-            $this->sendRegistrationConfirmationMail($email, $code);
+            $registrationTokens = $this->registrationService->resendRegistration($email);
+            $this->sendRegistrationConfirmationMail(
+                $email,
+                (string)$registrationTokens['code'],
+                (string)$registrationTokens['token']
+            );
             $this->audit('registration_code_resent', $this->auditEmailContext($email));
         } catch (\Throwable $e) {
             $this->logger->warning($this->brandName() . ': registration code resend failed', [
@@ -610,13 +662,24 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         ], 'guest');
     }
 
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function verify(): TemplateResponse {
         $code = trim((string)$this->request->getParam('code'));
+        $rateLimitMessage = $this->checkRateLimitAndRecord('registration_verify', $this->clientRateLimitIdentity());
+
+        if ($rateLimitMessage !== null) {
+            return $this->noStoreTemplate('error', [
+                'message' => $rateLimitMessage
+            ], 'guest');
+        }
+
         $registration = $this->registrationService->getRegistrationByToken($code);
 
         if (!$registration) {
-            return new TemplateResponse('enhanced_registration', 'error', [
-                'message' => 'Ungültiger Code'
+            return $this->noStoreTemplate('error', [
+                'message' => 'Ungültiger oder abgelaufener Bestätigungscode.'
             ], 'guest');
         }
 
@@ -626,13 +689,19 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         ], 'guest');
     }
 
-    /**
-     * @PublicPage
-     * @NoAdminRequired
-     * @NoCSRFRequired
-     */
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function submitDetails(): TemplateResponse {
         $token = trim((string)$this->request->getParam('token'));
+        $rateLimitMessage = $this->checkRateLimitAndRecord('registration_details', $this->clientRateLimitIdentity());
+
+        if ($rateLimitMessage !== null) {
+            return $this->noStoreTemplate('error', [
+                'message' => $rateLimitMessage
+            ], 'guest');
+        }
+
         $registration = $this->registrationService->getRegistrationByToken($token);
 
         if (!$registration) {
@@ -726,15 +795,15 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             ], 'guest');
         }
 
-        $redirectUrl = $this->config->getAppValue(
-            'enhanced_registration',
-            'registration_success_redirect_url',
-            ''
+        $loginUrl = $this->safeRedirectUrl(
+            $this->config->getAppValue('enhanced_registration', 'login_url', '/login'),
+            '/login'
         );
 
-        if (trim($redirectUrl) === '') {
-            $redirectUrl = $this->config->getAppValue('enhanced_registration', 'login_url', '/login');
-        }
+        $redirectUrl = $this->safeRedirectUrl(
+            $this->config->getAppValue('enhanced_registration', 'registration_success_redirect_url', ''),
+            $loginUrl
+        );
 
         return new TemplateResponse(
             'enhanced_registration',
@@ -747,11 +816,6 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             'guest'
         );
     }
-    /**
-     * @PublicPage
-     * @NoAdminRequired
-     * @NoCSRFRequired
-     */
     public function already(): TemplateResponse {
         return new TemplateResponse("enhanced_registration", "already", [], "guest");
     }
@@ -949,8 +1013,6 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     }
 
 
-
-
     /**
      * @AdminRequired
      */
@@ -1085,7 +1147,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         ]);
 
         $groupText = empty($groupNames) ? "Keine Gruppe" : implode(", ", $groupNames);
-        $loginUrl = $this->config->getAppValue("enhanced_registration", "login_url", "/login");
+        $loginUrl = $this->safeRedirectUrl($this->config->getAppValue("enhanced_registration", "login_url", "/login"), "/login");
 
         if ($user && !empty($user["email"])) {
             $displayName = (string)($user["displayName"] ?? $userId);
@@ -1178,15 +1240,16 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     }
 
 
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function passreset(): TemplateResponse {
         return $this->noStoreTemplate('passreset');
     }
 
-    /**
-     * @PublicPage
-     * @NoAdminRequired
-     * @NoCSRFRequired
-     */
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function submitpassreset(): TemplateResponse {
         $email = trim((string)$this->request->getParam('email'));
 
@@ -1224,11 +1287,9 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
      * @NoCSRFRequired
      */
 
-    /**
-     * @PublicPage
-     * @NoAdminRequired
-     * @NoCSRFRequired
-     */
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function resendpassreset(): TemplateResponse {
         $email = trim((string)$this->request->getParam('email'));
 
@@ -1278,6 +1339,9 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         ], 'guest');
     }
 
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function verifypassreset(): TemplateResponse {
         $token = trim((string)$this->request->getParam('token'));
         $rateLimitMessage = $this->checkRateLimitAndRecord('password_reset_verify', $this->clientRateLimitIdentity());
@@ -1301,11 +1365,9 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         ], 'guest');
     }
 
-    /**
-     * @PublicPage
-     * @NoAdminRequired
-     * @NoCSRFRequired
-     */
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function setnewpassword(): TemplateResponse {
         $token = trim((string)$this->request->getParam('token'));
         $rateLimitMessage = $this->checkRateLimitAndRecord('password_reset_set', $this->clientRateLimitIdentity());
@@ -1349,15 +1411,15 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             'user' => (string)$reset['user_id'],
         ]);
 
-        $redirectUrl = $this->config->getAppValue(
-            'enhanced_registration',
-            'password_reset_success_redirect_url',
-            ''
+        $loginUrl = $this->safeRedirectUrl(
+            $this->config->getAppValue('enhanced_registration', 'login_url', '/login'),
+            '/login'
         );
 
-        if (trim($redirectUrl) === '') {
-            $redirectUrl = $this->config->getAppValue('enhanced_registration', 'login_url', '/login');
-        }
+        $redirectUrl = $this->safeRedirectUrl(
+            $this->config->getAppValue('enhanced_registration', 'password_reset_success_redirect_url', ''),
+            $loginUrl
+        );
 
         return $this->noStoreTemplate('passreset_success', [
             'redirect_url' => $redirectUrl

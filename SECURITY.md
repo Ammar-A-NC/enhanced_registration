@@ -30,3 +30,9 @@ This project handles registration, password reset, LLDAP user creation, and pass
 - Restrict access to the bridge endpoint.
 - Review audit logs regularly.
 - Keep Nextcloud, PHP, LLDAP, and this app updated.
+
+
+## Pre-release and signing status
+
+Enhanced Registration is currently provided as an early GitHub pre-release/custom app. It is not yet signed for the Nextcloud App Store. Please review the code and test in a staging environment before production use.
+

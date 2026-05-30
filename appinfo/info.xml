@@ -4,13 +4,13 @@
   <name>Enhanced Registration</name>
   <summary>Registration and approval flow for Nextcloud installations using LLDAP</summary>
   <description>Registration with mail verification, admin approval, LLDAP provisioning, group assignment, password reset, and password bridge integration.</description>
-  <version>0.1.1</version>
+  <version>0.1.2</version>
   <licence>agpl</licence>
   <author>Ammar A. and contributors</author>
   <namespace>EnhancedRegistration</namespace>
   <category>tools</category>
   <dependencies>
-    <nextcloud min-version="29" max-version="40"/>
+    <nextcloud min-version="33" max-version="33"/>
   </dependencies>
   <settings>
     <admin>OCA\EnhancedRegistration\Settings\Admin</admin>

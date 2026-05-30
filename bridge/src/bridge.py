@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -9,6 +10,33 @@ LDAP_BIND_DN = os.environ.get("LDAP_BIND_DN", "uid=admin,ou=people,dc=example,dc
 LDAP_BIND_PASSWORD = os.environ.get("LDAP_BIND_PASSWORD", "")
 LDAP_USER_BASE_DN = os.environ.get("LDAP_USER_BASE_DN", "ou=people,dc=example,dc=com")
 BRIDGE_PORT = int(os.environ.get("BRIDGE_PORT", "18080"))
+
+USERNAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9._-]{2,63}$")
+
+
+def escape_ldap_dn_value(value: str) -> str:
+    result = []
+
+    for ch in value:
+        if ch == "\\00":
+            result.append("\\00")
+        elif ch in ['\\', ',', '+', '"', '<', '>', ';', '=']:
+            result.append("\\" + ch)
+        else:
+            result.append(ch)
+
+    escaped = "".join(result)
+
+    if escaped.startswith("#"):
+        escaped = "\\#" + escaped[1:]
+
+    if escaped.startswith(" "):
+        escaped = "\\ " + escaped[1:]
+
+    if escaped.endswith(" "):
+        escaped = escaped[:-1] + "\\ "
+
+    return escaped
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -56,13 +84,19 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(b"missing username/password")
             return
 
+        if not USERNAME_RE.match(username):
+            self.send_response(400)
+            self.end_headers()
+            self.wfile.write(b"invalid username")
+            return
+
         if not LDAP_BIND_PASSWORD:
             self.send_response(500)
             self.end_headers()
             self.wfile.write(b"ldap bind password missing")
             return
 
-        user_dn = "uid=" + username + "," + LDAP_USER_BASE_DN
+        user_dn = "uid=" + escape_ldap_dn_value(username) + "," + LDAP_USER_BASE_DN
 
         try:
             proc = subprocess.run(

@@ -17,7 +17,10 @@ $email = $_['email'] ?? '';
         <input
             type="text"
             name="code"
-            placeholder="Bestätigungscode"
+            inputmode="numeric"
+            pattern="[0-9]{8}"
+            maxlength="8"
+            placeholder="8-stelliger Bestätigungscode"
             required
             style="width:100%;margin-bottom:15px;"
         />

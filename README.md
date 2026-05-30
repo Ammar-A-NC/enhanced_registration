@@ -76,6 +76,14 @@ Use the built-in test buttons to verify:
 - Password bridge
 - Mail delivery
 
+## Release and signing status
+
+This repository is currently distributed as an early GitHub pre-release. It is not yet packaged or signed for the Nextcloud App Store. Administrators should treat it as a custom app, review the code, and test upgrades in a staging instance before production use.
+
+## Pending users and login restrictions
+
+Enhanced Registration creates users in LLDAP and assigns them to a pending group before approval. For production-like deployments, configure Nextcloud's LDAP login filter so that only approved groups can log in. Pending users must not be able to authenticate to Nextcloud before they are approved.
+
 ## Password bridge
 
 The app delegates password setting and password reset operations to a bridge service.

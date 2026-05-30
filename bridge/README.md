@@ -65,4 +65,5 @@ In the Enhanced Registration app settings, set:
 - Use a long random `BRIDGE_SECRET`.
 - Use a restricted LDAP bind user if possible.
 - Treat `LDAP_BIND_PASSWORD` and `BRIDGE_SECRET` as sensitive.
+- The bridge validates usernames and escapes LDAP DN values before calling `ldappasswd`.
 - Use HTTPS or a trusted private network between Nextcloud and the bridge.
