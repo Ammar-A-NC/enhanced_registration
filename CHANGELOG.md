@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.3
+
+Security and hardening pre-release.
+
+- Add public route attributes to the registration start and duplicate-registration pages.
+- Add IP-based rate limiting in addition to email-based rate limiting for registration and password reset requests.
+- Make initial password reset responses uniform to reduce account enumeration risk.
+- Catch and log initial password reset mail delivery errors.
+- Handle registration confirmation mail delivery errors without redirecting to the duplicate-registration page.
+- Harden LLDAP HTTP handling with curl timeouts, HTTP status checks, JSON validation, and warning logs.
+- Clean up partially created LLDAP users if password setup or pending-group assignment fails.
+- Harden password bridge calls with curl timeouts, HTTP status checks, and warning logs.
+- Bump app version to 0.1.3.
+
 ## 0.1.2
 
 Security and hardening release.

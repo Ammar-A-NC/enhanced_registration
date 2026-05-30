@@ -537,6 +537,9 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     }
 
 
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function index(): TemplateResponse {
         return $this->noStoreTemplate('register');
     }
@@ -551,39 +554,56 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             return $this->noStoreTemplate('register', [
                 'email' => $email,
                 'message' => 'Bitte geben Sie eine gültige E-Mail-Adresse ein.'
-            ], 'guest');
+            ]);
         }
 
         if (!$this->isEmailDomainAllowed($email)) {
             return $this->noStoreTemplate('register', [
                 'email' => $email,
                 'message' => 'Diese E-Mail-Domain ist für die Registrierung nicht zugelassen.'
-            ], 'guest');
+            ]);
         }
 
-        $rateLimitMessage = $this->checkRateLimitAndRecord('registration_request', $email);
-
+        $rateLimitMessage = $this->checkRateLimitAndRecord('registration_request_ip', $this->clientRateLimitIdentity());
         if ($rateLimitMessage !== null) {
             return $this->noStoreTemplate('register', [
                 'email' => $email,
                 'message' => $rateLimitMessage
-            ], 'guest');
+            ]);
+        }
+
+        $rateLimitMessage = $this->checkRateLimitAndRecord('registration_request_email', $email);
+        if ($rateLimitMessage !== null) {
+            return $this->noStoreTemplate('register', [
+                'email' => $email,
+                'message' => $rateLimitMessage
+            ]);
         }
 
         try {
             $registrationTokens = $this->registrationService->createRegistration($email);
+        } catch (\Throwable $e) {
+            return new RedirectResponse("/index.php/apps/enhanced_registration/already");
+        }
+
+        try {
             $this->sendRegistrationConfirmationMail(
                 $email,
                 (string)$registrationTokens['code'],
                 (string)$registrationTokens['token']
             );
         } catch (\Throwable $e) {
-            $this->logger->warning($this->brandName() . ': registration confirmation failed', [
+            $this->registrationService->markTokenUsed((string)$registrationTokens['token']);
+
+            $this->logger->warning($this->brandName() . ': registration confirmation mail failed', [
                 'email' => $email,
                 'error' => $e->getMessage(),
             ]);
 
-            return new RedirectResponse("/index.php/apps/enhanced_registration/already");
+            return $this->noStoreTemplate('register', [
+                'email' => $email,
+                'message' => 'Die Bestätigungsmail konnte nicht gesendet werden. Bitte versuchen Sie es später erneut.'
+            ]);
         }
 
         $this->audit('registration_code_requested', $this->auditEmailContext($email));
@@ -609,11 +629,6 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         return new RedirectResponse('/index.php/apps/enhanced_registration/verify?code=' . urlencode($code));
     }
 
-    /**
- * @PublicPage
- * @NoAdminRequired
- * @NoCSRFRequired
- */
 
     #[PublicPage]
     #[NoAdminRequired]
@@ -816,6 +831,9 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             'guest'
         );
     }
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function already(): TemplateResponse {
         return new TemplateResponse("enhanced_registration", "already", [], "guest");
     }
@@ -1252,91 +1270,96 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[NoCSRFRequired]
     public function submitpassreset(): TemplateResponse {
         $email = trim((string)$this->request->getParam('email'));
+        $genericMessage = 'Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Code gesendet.';
 
-        $rateLimitMessage = $this->checkRateLimitAndRecord('password_reset_request', $email);
-
+        $rateLimitMessage = $this->checkRateLimitAndRecord('password_reset_request_ip', $this->clientRateLimitIdentity());
         if ($rateLimitMessage !== null) {
             return $this->noStoreTemplate('passreset', [
                 'email' => $email,
                 'message' => $rateLimitMessage
-            ], 'guest');
+            ]);
         }
 
-        $user = $this->lldapService->findUserByEmail($email);
-
-        if (!$user) {
-            return new TemplateResponse('enhanced_registration', 'passreset', [
-                'message' => 'Falls diese E-Mail-Adresse existiert, wurde ein Code versendet.'
-            ], 'guest');
+        if ($email !== '') {
+            $rateLimitMessage = $this->checkRateLimitAndRecord('password_reset_request_email', $email);
+            if ($rateLimitMessage !== null) {
+                return $this->noStoreTemplate('passreset', [
+                    'email' => $email,
+                    'message' => $rateLimitMessage
+                ]);
+            }
         }
 
-        $token = $this->passwordResetService->createReset($email, (string)$user['id']);
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            try {
+                $user = $this->lldapService->findUserByEmail($email);
 
-        $this->sendPasswordResetMail($email, $token);
-        $this->audit('password_reset_requested', $this->auditEmailContext($email));
+                if ($user) {
+                    $token = $this->passwordResetService->createReset($email, (string)$user['id']);
+                    $this->sendPasswordResetMail($email, $token);
+                    $this->audit('password_reset_requested', $this->auditEmailContext($email));
+                }
+            } catch (\Throwable $e) {
+                $this->logger->warning($this->brandName() . ': password reset request failed', [
+                    'email' => $email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return $this->noStoreTemplate('passreset_code', [
             'email' => $email,
-            'message' => 'Wir haben Ihnen einen Bestätigungscode gesendet.'
-        ], 'guest');
+            'message' => $genericMessage
+        ]);
     }
 
-    /**
-     * @PublicPage
-     * @NoAdminRequired
-     * @NoCSRFRequired
-     */
 
     #[PublicPage]
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function resendpassreset(): TemplateResponse {
         $email = trim((string)$this->request->getParam('email'));
+        $genericMessage = 'Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein neuer Code gesendet.';
 
-        if ($email === '') {
-            return $this->noStoreTemplate('passreset', [
-                'message' => 'Bitte geben Sie Ihre E-Mail-Adresse erneut ein.'
-            ], 'guest');
-        }
-
-        $rateLimitMessage = $this->checkRateLimitAndRecord('password_reset_resend', $email);
-
+        $rateLimitMessage = $this->checkRateLimitAndRecord('password_reset_resend_ip', $this->clientRateLimitIdentity());
         if ($rateLimitMessage !== null) {
             return $this->noStoreTemplate('passreset_code', [
                 'email' => $email,
                 'message' => $rateLimitMessage
-            ], 'guest');
-        }
-
-        $user = $this->lldapService->findUserByEmail($email);
-
-        if (!$user) {
-            return $this->noStoreTemplate('passreset', [
-                'message' => 'Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein neuer Code gesendet.'
-            ], 'guest');
-        }
-
-        $token = $this->passwordResetService->createReset($email, (string)$user['id']);
-
-        try {
-            $this->sendPasswordResetMail($email, $token);
-            $this->audit('password_reset_code_resent', $this->auditEmailContext($email));
-        } catch (\Throwable $e) {
-            $this->logger->warning($this->brandName() . ': password reset code resend failed', [
-                'email' => $email,
-                'error' => $e->getMessage(),
             ]);
+        }
 
-            return $this->noStoreTemplate('passreset_code', [
-                'email' => $email,
-                'message' => 'Der Bestätigungscode konnte nicht erneut gesendet werden.'
-            ], 'guest');
+        if ($email !== '') {
+            $rateLimitMessage = $this->checkRateLimitAndRecord('password_reset_resend_email', $email);
+            if ($rateLimitMessage !== null) {
+                return $this->noStoreTemplate('passreset_code', [
+                    'email' => $email,
+                    'message' => $rateLimitMessage
+                ]);
+            }
+        }
+
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            try {
+                $user = $this->lldapService->findUserByEmail($email);
+
+                if ($user) {
+                    $token = $this->passwordResetService->createReset($email, (string)$user['id']);
+                    $this->sendPasswordResetMail($email, $token);
+                    $this->audit('password_reset_code_resent', $this->auditEmailContext($email));
+                }
+            } catch (\Throwable $e) {
+                $this->logger->warning($this->brandName() . ': password reset code resend failed', [
+                    'email' => $email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return $this->noStoreTemplate('passreset_code', [
             'email' => $email,
-            'message' => 'Bestätigungscode wurde erneut gesendet.'
-        ], 'guest');
+            'message' => $genericMessage
+        ]);
     }
 
     #[PublicPage]

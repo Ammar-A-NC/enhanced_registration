@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace OCA\EnhancedRegistration\Service;
 
 use OCP\IConfig;
+use Psr\Log\LoggerInterface;
 
 class LldapService {
-    public function __construct(private IConfig $config) {}
-
+    public function __construct(
+        private IConfig $config,
+        private LoggerInterface $logger
+    ) {}
 
     private function requiredGroupId(string $key, string $label): int {
         $value = trim($this->config->getAppValue('enhanced_registration', $key, ''));
@@ -20,64 +23,121 @@ class LldapService {
         return (int)$value;
     }
 
+    private function lldapGraphqlUrl(): string {
+        $url = trim($this->config->getAppValue('enhanced_registration', 'lldap_url', ''));
+
+        if ($url === '') {
+            throw new \RuntimeException('LLDAP URL ist nicht konfiguriert.');
+        }
+
+        return $url;
+    }
+
+    private function curlJsonPost(string $url, array $payload, array $headers = []): array {
+        $jsonPayload = json_encode($payload);
+
+        if ($jsonPayload === false) {
+            throw new \RuntimeException('JSON-Encoding fehlgeschlagen.');
+        }
+
+        $requestHeaders = array_merge(['Content-Type: application/json'], $headers);
+
+        $ch = curl_init($url);
+
+        if ($ch === false) {
+            throw new \RuntimeException('curl_init fehlgeschlagen.');
+        }
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => $requestHeaders,
+            CURLOPT_POSTFIELDS => $jsonPayload,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT => 20,
+        ]);
+
+        $response = curl_exec($ch);
+        $curlError = curl_error($ch);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($response === false) {
+            $this->logger->warning('Enhanced Registration: LLDAP HTTP request failed', [
+                'url' => $url,
+                'error' => $curlError,
+            ]);
+
+            throw new \RuntimeException('LLDAP HTTP-Anfrage fehlgeschlagen: ' . $curlError);
+        }
+
+        if ($httpCode < 200 || $httpCode >= 300) {
+            $this->logger->warning('Enhanced Registration: LLDAP HTTP request returned unexpected status', [
+                'url' => $url,
+                'status' => $httpCode,
+                'response' => substr((string)$response, 0, 1000),
+            ]);
+
+            throw new \RuntimeException('LLDAP HTTP-Status unerwartet: ' . $httpCode);
+        }
+
+        $decoded = json_decode((string)$response, true);
+
+        if (!is_array($decoded)) {
+            $this->logger->warning('Enhanced Registration: LLDAP response was not valid JSON', [
+                'url' => $url,
+                'response' => substr((string)$response, 0, 1000),
+            ]);
+
+            throw new \RuntimeException('LLDAP Antwort ist kein gültiges JSON.');
+        }
+
+        return $decoded;
+    }
+
     private function getToken(): string {
-        $graphql = $this->config->getAppValue('enhanced_registration', 'lldap_url');
+        $graphql = $this->lldapGraphqlUrl();
         $base = preg_replace('#/api/graphql$#', '', $graphql);
 
-        $user = $this->config->getAppValue('enhanced_registration', 'lldap_admin_user');
-        $password = $this->config->getAppValue('enhanced_registration', 'lldap_admin_password');
+        if (!is_string($base) || trim($base) === '') {
+            throw new \RuntimeException('LLDAP Basis-URL konnte nicht bestimmt werden.');
+        }
 
-        $payload = json_encode([
+        $user = $this->config->getAppValue('enhanced_registration', 'lldap_admin_user', '');
+        $password = $this->config->getAppValue('enhanced_registration', 'lldap_admin_password', '');
+
+        $json = $this->curlJsonPost($base . '/auth/simple/login', [
             'username' => $user,
             'password' => $password,
         ]);
 
-        $ch = curl_init($base . '/auth/simple/login');
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_POSTFIELDS => $payload,
-        ]);
-
-        $response = curl_exec($ch);
-        curl_close($ch);
-
-        $json = json_decode((string)$response, true);
-
-        if (!isset($json['token'])) {
-            throw new \RuntimeException('LLDAP Token fehlt');
+        if (!isset($json['token']) || !is_string($json['token']) || $json['token'] === '') {
+            throw new \RuntimeException('LLDAP Token fehlt.');
         }
 
         return $json['token'];
     }
 
     private function query(string $query, array $variables = []): array {
-        $url = $this->config->getAppValue('enhanced_registration', 'lldap_url');
+        $url = $this->lldapGraphqlUrl();
         $token = $this->getToken();
 
-        $payload = json_encode([
-            'query' => $query,
-            'variables' => $variables,
-        ]);
-
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Authorization: Bearer ' . $token,
+        $json = $this->curlJsonPost(
+            $url,
+            [
+                'query' => $query,
+                'variables' => $variables,
             ],
-            CURLOPT_POSTFIELDS => $payload,
-        ]);
-
-        $response = curl_exec($ch);
-        curl_close($ch);
-
-        $json = json_decode((string)$response, true) ?: [];
+            [
+                'Authorization: Bearer ' . $token,
+            ]
+        );
 
         if (isset($json['errors'])) {
+            $this->logger->warning('Enhanced Registration: LLDAP GraphQL error', [
+                'errors' => $json['errors'],
+            ]);
+
             throw new \RuntimeException('LLDAP GraphQL Fehler: ' . json_encode($json['errors']));
         }
 
@@ -96,17 +156,39 @@ class LldapService {
             $userInput['email'] = $email;
         }
 
-        $this->query(
-            'mutation CreateUser($user: CreateUserInput!) {
-                createUser(user: $user) { id }
-            }',
-            [
-                'user' => $userInput,
-            ]
-        );
+        $created = false;
 
-        $this->setUserPassword($username, $password);
-        $this->addUserToGroup($username, $group);
+        try {
+            $this->query(
+                'mutation CreateUser($user: CreateUserInput!) {
+                    createUser(user: $user) { id }
+                }',
+                [
+                    'user' => $userInput,
+                ]
+            );
+
+            $created = true;
+
+            $this->setUserPassword($username, $password);
+            $this->addUserToGroup($username, $group);
+        } catch (\Throwable $e) {
+            if ($created) {
+                try {
+                    $this->deleteUser($username);
+                    $this->logger->warning('Enhanced Registration: cleaned up partially created LLDAP user', [
+                        'user' => $username,
+                    ]);
+                } catch (\Throwable $cleanupError) {
+                    $this->logger->error('Enhanced Registration: failed to clean up partially created LLDAP user', [
+                        'user' => $username,
+                        'error' => $cleanupError->getMessage(),
+                    ]);
+                }
+            }
+
+            throw $e;
+        }
     }
 
     public function getPendingUsers(): array {
@@ -185,6 +267,7 @@ class LldapService {
         $this->removeUserFromGroup($userId, $pendingGroupId);
         $this->addUserToGroup($userId, $blacklistGroupId);
     }
+
     public function rejectUser(string $userId, string $action): void {
         $pendingGroupId = $this->requiredGroupId('lldap_pending_group_id', 'Pending-Gruppe');
 
@@ -220,6 +303,7 @@ class LldapService {
                 return $user;
             }
         }
+
         return null;
     }
 
@@ -249,22 +333,6 @@ class LldapService {
             throw new \RuntimeException('LLDAP Bridge Secret ist nicht konfiguriert.');
         }
 
-        $payload = json_encode([
-            'secret' => $bridgeSecret,
-            'username' => $userId,
-            'password' => $password,
-        ]);
-
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'POST',
-                'header' => "Content-Type: application/json\r\n",
-                'content' => $payload,
-                'timeout' => 20,
-                'ignore_errors' => true,
-            ],
-        ]);
-
         $bridgeUrl = trim($this->config->getAppValue(
             'enhanced_registration',
             'bridge_url',
@@ -275,10 +343,53 @@ class LldapService {
             throw new \RuntimeException('Passwort-Bridge URL ist nicht konfiguriert. Bitte in den Enhanced Registration Einstellungen setzen.');
         }
 
-        $response = @file_get_contents($bridgeUrl, false, $context);
+        $payload = json_encode([
+            'secret' => $bridgeSecret,
+            'username' => $userId,
+            'password' => $password,
+        ]);
 
-        if ($response === false || trim($response) !== 'ok') {
-            throw new \RuntimeException('LLDAP Passwortänderung fehlgeschlagen: ' . (string)$response);
+        if ($payload === false) {
+            throw new \RuntimeException('JSON-Encoding für Passwort-Bridge fehlgeschlagen.');
+        }
+
+        $ch = curl_init($bridgeUrl);
+
+        if ($ch === false) {
+            throw new \RuntimeException('curl_init für Passwort-Bridge fehlgeschlagen.');
+        }
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT => 20,
+        ]);
+
+        $response = curl_exec($ch);
+        $curlError = curl_error($ch);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($response === false) {
+            $this->logger->warning('Enhanced Registration: password bridge request failed', [
+                'user' => $userId,
+                'error' => $curlError,
+            ]);
+
+            throw new \RuntimeException('LLDAP Passwortänderung fehlgeschlagen: ' . $curlError);
+        }
+
+        if ($httpCode < 200 || $httpCode >= 300 || trim((string)$response) !== 'ok') {
+            $this->logger->warning('Enhanced Registration: password bridge returned unexpected response', [
+                'user' => $userId,
+                'status' => $httpCode,
+                'response' => substr((string)$response, 0, 1000),
+            ]);
+
+            throw new \RuntimeException('LLDAP Passwortänderung fehlgeschlagen.');
         }
     }
 
@@ -331,7 +442,6 @@ class LldapService {
 
         return array_values($users);
     }
-
 
     public function getAssignableGroups(): array {
         $pendingGroupId = $this->requiredGroupId('lldap_pending_group_id', 'Pending-Gruppe');
@@ -410,6 +520,4 @@ class LldapService {
             }
         }
     }
-
-
 }
