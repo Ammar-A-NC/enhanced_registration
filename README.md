@@ -1,11 +1,15 @@
 # Enhanced Registration
 
-> **Current recommended release:** `v0.1.2`  
-> `v0.1.0` and `v0.1.1` were earlier pre-releases. Please use `v0.1.2` or newer because it includes additional security hardening for registration, password reset, rate limiting, redirects, and the password bridge.
+> **Current recommended release:** `v0.1.3`  
+> `v0.1.0`, `v0.1.1`, and `v0.1.2` were earlier pre-releases. Please use `v0.1.3` or newer because it includes additional public-page, anti-enumeration, rate-limit, mail-error, LLDAP, redirect, and password bridge hardening.
 
 Enhanced Registration is a community Nextcloud app for self-hosted installations that use LLDAP as their identity backend and need an approval-based registration and password reset flow.
 
 It is not a replacement for every use case covered by the official Registration app. It targets a narrower setup: Nextcloud + LLDAP + a password bridge service.
+
+## v0.1.3 hardening notes
+
+Version 0.1.3 adds additional hardening around public routes, password-reset enumeration resistance, IP-based rate limiting, mail-error handling, LLDAP HTTP error handling, password bridge calls, and cleanup of partially created LLDAP users.
 
 ## Features
 
