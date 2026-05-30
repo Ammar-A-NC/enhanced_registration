@@ -25,3 +25,11 @@ coverage/
 # Local environment files
 .env
 .env.*
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Keep example env files public
+!.env.example
+!**/.env.example

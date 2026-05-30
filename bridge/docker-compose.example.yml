@@ -1,0 +1,9 @@
+services:
+  enhanced-registration-bridge:
+    build: .
+    container_name: enhanced-registration-bridge
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "18081:18080"
