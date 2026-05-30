@@ -372,6 +372,16 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         return null;
     }
 
+    private function clientRateLimitIdentity(): string {
+        $remote = (string)($_SERVER['REMOTE_ADDR'] ?? 'anonymous');
+
+        if ($remote === '') {
+            return 'anonymous';
+        }
+
+        return $remote;
+    }
+
 
     private function passwordPolicyEnabled(string $key): bool {
         return $this->config->getAppValue('enhanced_registration', $key, '1') === '1';
@@ -622,8 +632,16 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
      * @NoCSRFRequired
      */
     public function submitDetails(): TemplateResponse {
-
         $token = trim((string)$this->request->getParam('token'));
+        $registration = $this->registrationService->getRegistrationByToken($token);
+
+        if (!$registration) {
+            return $this->noStoreTemplate('error', [
+                'message' => 'Ungültiger oder abgelaufener Registrierungscode.'
+            ], 'guest');
+        }
+
+        $email = (string)$registration['email'];
         $username = trim((string)$this->request->getParam('username'));
         $displayname = trim((string)$this->request->getParam('displayname'));
         $phone = trim((string)$this->request->getParam('phone'));
@@ -633,56 +651,41 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         if ($password !== $passwordConfirm) {
             return $this->noStoreTemplate('details', [
                 'token' => $token,
-                'email' => (string)$this->request->getParam('email'),
+                'email' => $email,
                 'username' => $username,
                 'displayname' => $displayname,
                 'phone' => $phone,
                 'message' => 'Die Passwörter stimmen nicht überein.'
             ], 'guest');
         }
-        $passwordConfirm = (string)$this->request->getParam('password_confirm');
-
-        if ($password !== $passwordConfirm) {
-            return new TemplateResponse(
-                'enhanced_registration',
-                'details',
-                [
-                    'message' => 'Die Passwörter stimmen nicht überein.'
-                ],
-                'guest'
-            );
-        }
-
 
         if (!preg_match('/^[A-Za-z][A-Za-z0-9._-]{2,31}$/', $username)) {
             return $this->noStoreTemplate('details', [
-                'email' => (string)$this->request->getParam('email'),
+                'email' => $email,
                 'token' => $token,
                 'username' => $username,
                 'displayname' => $displayname,
                 'phone' => $phone,
                 'message' => 'Ungültiger Anmeldename. Erlaubt sind 3–32 Zeichen: Buchstaben, Zahlen, Punkt, Unterstrich und Bindestrich. Das erste Zeichen muss ein Buchstabe sein.'
-            ]);
+            ], 'guest');
         }
 
         if ($phone !== '' && !preg_match('/^[0-9+()\/ .-]{6,30}$/', $phone)) {
             return $this->noStoreTemplate('details', [
-                'email' => (string)$this->request->getParam('email'),
+                'email' => $email,
                 'token' => $token,
                 'username' => $username,
                 'displayname' => $displayname,
                 'phone' => $phone,
                 'message' => 'Ungültige Telefonnummer. Erlaubt sind Zahlen, +, Leerzeichen, -, / und Klammern.'
-            ]);
+            ], 'guest');
         }
-
-
 
         $passwordPolicyMessage = $this->validatePasswordPolicy($password);
 
         if ($passwordPolicyMessage !== null) {
             return $this->noStoreTemplate('details', [
-                'email' => (string)$this->request->getParam('email'),
+                'email' => $email,
                 'token' => $token,
                 'username' => $username,
                 'displayname' => $displayname,
@@ -692,11 +695,11 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         }
 
         try {
-            $this->lldapService->createPendingUser($username, (string)$this->request->getParam('email'), $displayname, $password);
+            $this->lldapService->createPendingUser($username, $email, $displayname, $password);
             $this->registrationService->markTokenUsed($token);
             $this->audit('registration_submitted_pending', array_merge([
                 'user' => $username,
-            ], $this->auditEmailContext((string)$this->request->getParam('email'))));
+            ], $this->auditEmailContext($email)));
         } catch (\Throwable $e) {
             $error = $e->getMessage();
             $message = 'Account konnte nicht erstellt werden. Bitte versuchen Sie es später erneut.';
@@ -709,20 +712,19 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
 
             $this->logger->warning($this->brandName() . ': account creation failed', [
                 'user' => $username,
-                'email' => (string)$this->request->getParam('email'),
+                'email' => $email,
                 'error' => $error,
             ]);
 
             return $this->noStoreTemplate('details', [
-                'email' => (string)$this->request->getParam('email'),
+                'email' => $email,
                 'token' => $token,
                 'username' => $username,
                 'displayname' => $displayname,
                 'phone' => $phone,
                 'message' => $message
-            ]);
+            ], 'guest');
         }
-
 
         $redirectUrl = $this->config->getAppValue(
             'enhanced_registration',
@@ -1245,7 +1247,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             ], 'guest');
         }
 
-        $user = $this->lldapService->getUserByEmail($email);
+        $user = $this->lldapService->findUserByEmail($email);
 
         if (!$user) {
             return $this->noStoreTemplate('passreset', [
@@ -1253,8 +1255,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             ], 'guest');
         }
 
-        $reset = $this->passwordResetService->getActiveResetByEmail($email);
-        $token = $reset ? (string)$reset['token'] : $this->passwordResetService->createReset($email, (string)$user['id']);
+        $token = $this->passwordResetService->createReset($email, (string)$user['id']);
 
         try {
             $this->sendPasswordResetMail($email, $token);
@@ -1279,6 +1280,14 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
 
     public function verifypassreset(): TemplateResponse {
         $token = trim((string)$this->request->getParam('token'));
+        $rateLimitMessage = $this->checkRateLimitAndRecord('password_reset_verify', $this->clientRateLimitIdentity());
+
+        if ($rateLimitMessage !== null) {
+            return $this->noStoreTemplate('passreset_code', [
+                'message' => $rateLimitMessage
+            ], 'guest');
+        }
+
         $reset = $this->passwordResetService->getValidReset($token);
 
         if (!$reset) {
@@ -1299,6 +1308,14 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
      */
     public function setnewpassword(): TemplateResponse {
         $token = trim((string)$this->request->getParam('token'));
+        $rateLimitMessage = $this->checkRateLimitAndRecord('password_reset_set', $this->clientRateLimitIdentity());
+
+        if ($rateLimitMessage !== null) {
+            return $this->noStoreTemplate('passreset_code', [
+                'message' => $rateLimitMessage
+            ], 'guest');
+        }
+
         $password = (string)$this->request->getParam('password');
         $passwordConfirm = (string)$this->request->getParam('password_confirm');
 
