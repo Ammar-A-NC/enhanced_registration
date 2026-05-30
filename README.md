@@ -38,6 +38,8 @@ The password bridge service is required for registration and password reset flow
 
 Clone or copy this app into your Nextcloud custom_apps directory:
 
+If you download the repository as a ZIP file from GitHub, rename the extracted folder from `enhanced_registration-main` to `enhanced_registration` before placing it in Nextcloud's `custom_apps` directory.
+
     cd /path/to/nextcloud/custom_apps
     git clone <repository-url> enhanced_registration
 
