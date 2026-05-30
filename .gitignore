@@ -1,0 +1,27 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Backups
+*.bak*
+*backup*
+
+# Logs / temporary files
+*.log
+*.tmp
+tmp/
+temp/
+
+# Dependencies / build artifacts if added later
+node_modules/
+vendor/
+build/
+dist/
+coverage/
+
+# Local environment files
+.env
+.env.*

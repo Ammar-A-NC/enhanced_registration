@@ -1,0 +1,19 @@
+.nc-error {
+    color: #e9322d;
+    text-align: center;
+    font-weight: 600;
+    margin: 10px 0 14px;
+}
+
+.nc-success {
+    color: #46ba61;
+    text-align: center;
+    font-weight: 600;
+    margin: 10px 0 14px;
+}
+
+.nc-hint {
+    font-size: 13px;
+    opacity: .8;
+    margin: 8px 0 14px;
+}
