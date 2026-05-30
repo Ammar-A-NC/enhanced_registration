@@ -13,15 +13,19 @@ class PasswordResetService {
     ) {
     }
 
-    public function createReset(string $email, string $userId): string {
+    private function tokenHash(string $token): string {
+        return hash('sha256', $token);
+    }
 
-        $token = (string)random_int(100000, 999999);
+    public function createReset(string $email, string $userId): string {
+        $token = bin2hex(random_bytes(32));
+        $tokenHash = $this->tokenHash($token);
         $expires = time() + 600;
+
         $qb = $this->db->getQueryBuilder();
         $qb->delete('enhanced_password_resets')
             ->where($qb->expr()->eq('email', $qb->createNamedParameter($email)))
             ->executeStatement();
-
 
         $query = $this->db->getQueryBuilder();
 
@@ -29,9 +33,10 @@ class PasswordResetService {
             ->values([
                 'email' => $query->createNamedParameter($email),
                 'user_id' => $query->createNamedParameter($userId),
-                'token' => $query->createNamedParameter($token),
+                'token_hash' => $query->createNamedParameter($tokenHash),
                 'expires_at' => $query->createNamedParameter($expires),
                 'used' => $query->createNamedParameter(0),
+                'created_at' => $query->createNamedParameter(time()),
             ]);
 
         $query->executeStatement();
@@ -40,6 +45,9 @@ class PasswordResetService {
     }
 
     public function getValidReset(string $token): ?array {
+        if (trim($token) === '') {
+            return null;
+        }
 
         $query = $this->db->getQueryBuilder();
 
@@ -47,8 +55,8 @@ class PasswordResetService {
             ->from('enhanced_password_resets')
             ->where(
                 $query->expr()->eq(
-                    'token',
-                    $query->createNamedParameter($token)
+                    'token_hash',
+                    $query->createNamedParameter($this->tokenHash($token))
                 )
             )
             ->andWhere(
@@ -62,7 +70,8 @@ class PasswordResetService {
                     'expires_at',
                     $query->createNamedParameter(time())
                 )
-            );
+            )
+            ->setMaxResults(1);
 
         $row = $query->executeQuery()->fetchAssociative();
 
@@ -70,15 +79,14 @@ class PasswordResetService {
     }
 
     public function markUsed(string $token): void {
-
         $query = $this->db->getQueryBuilder();
 
         $query->update('enhanced_password_resets')
             ->set('used', $query->createNamedParameter(1))
             ->where(
                 $query->expr()->eq(
-                    'token',
-                    $query->createNamedParameter($token)
+                    'token_hash',
+                    $query->createNamedParameter($this->tokenHash($token))
                 )
             );
 
@@ -99,5 +107,4 @@ class PasswordResetService {
 
         return $row ?: null;
     }
-
 }

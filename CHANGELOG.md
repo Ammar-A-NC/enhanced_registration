@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.1
+
+Security and stability hardening release.
+
+- Validate the registration token again during final account details submission.
+- Use the verified registration email from the database instead of trusting submitted form data.
+- Add the missing password reset database migration.
+- Replace short password reset codes with long random reset tokens stored as SHA-256 hashes.
+- Add rate limiting for password reset verification and password update attempts.
+- Fix password reset resend flow by using the existing email lookup method.
+- Bump app version to 0.1.1.
+
 ## 0.1.0
 
 Initial public development version.
