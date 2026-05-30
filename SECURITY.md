@@ -6,9 +6,15 @@ Please report security issues privately instead of opening a public issue.
 
 If no dedicated security contact is configured for this repository yet, open a minimal issue asking for a private contact method without disclosing technical details.
 
+## Maintenance status
+
+This project is provided as open source and maintained on a best-effort basis in the maintainer’s spare time. The maintainer does not commit to continued development, support, maintenance, or security fixes at any particular time.
+
+Everyone is free to fork the project, adapt it to their own needs, submit pull requests, or continue development independently within the terms of the license.
+
 ## Response expectations
 
-This project is maintained on a best-effort basis in the maintainer’s spare time. Response times and fix timelines are not guaranteed. Critical security reports will be prioritized where possible, but some issues may take time to investigate or resolve.
+Response times and fix timelines are not guaranteed. Critical security reports will be prioritized where possible, but some issues may take time to investigate or resolve.
 
 If you use this app in production, please assess the risk for your own environment and apply temporary mitigations where appropriate.
 
