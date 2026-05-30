@@ -79,6 +79,8 @@ Expected flow:
 
     Nextcloud app -> password bridge -> LLDAP
 
+A minimal example bridge is included in the `bridge/` directory. It can be used as a starting point for a separate Docker Compose deployment.
+
 The bridge should only be reachable from trusted systems and should validate a strong shared secret.
 
 ## Language
