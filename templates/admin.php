@@ -483,7 +483,7 @@ if (!is_array($auditEvents)) {
                         E-Mail-Adresse im LDAP-Benutzer speichern
                     </label>
                     <p class="nc-muted">
-                        Wenn aktiviert, wird die Registrierungs-E-Mail im LDAP-Feld gespeichert und kann von Nextcloud/Jellyfin übernommen werden.
+                        Wenn aktiviert, wird die Registrierungs-E-Mail im LDAP-Feld gespeichert und kann von Nextcloud oder verbundenen Diensten übernommen werden.
                         Wenn deaktiviert, können Freigabe-Mails und Passwortreset per E-Mail eingeschränkt sein, solange die E-Mail nicht anderweitig im LDAP gesetzt wird.
                     </p>
 
