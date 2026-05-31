@@ -1,27 +1,29 @@
 # Enhanced Registration
 
-> **Current recommended release:** `v0.1.4`  
-> `v0.1.0`, `v0.1.1`, and `v0.1.2` were earlier pre-releases. Please use `v0.1.4` or newer because it includes additional public-page, anti-enumeration, rate-limit, mail-error, LLDAP, redirect, and password bridge hardening.
+> **Current recommended release:** `v0.2.0`  
+> `v0.2.0` introduces the Direct LDAP password writer. The password bridge is now only a legacy fallback.
 
 Enhanced Registration is a community Nextcloud app for self-hosted installations that use LLDAP as their identity backend and need an approval-based registration and password reset flow.
 
-It is not a replacement for every use case covered by the official Registration app. It targets a narrower setup: Nextcloud + LLDAP + a password bridge service.
+It is not a replacement for every use case covered by the official Registration app. It targets a narrower setup: Nextcloud + LLDAP. Since v0.2.0, passwords are changed directly through LDAP; the bridge is only a legacy fallback.
 
-## v0.1.3 hardening notes
+## v0.2.0 notes
 
-Version 0.1.3 adds additional hardening around public routes, password-reset enumeration resistance, IP-based rate limiting, mail-error handling, LLDAP HTTP error handling, password bridge calls, and cleanup of partially created LLDAP users.
+Version 0.2.0 adds the Direct LDAP password writer, keeps the bridge as a legacy fallback, improves LLDAP admin usability, shows LLDAP users without group memberships, adds full LLDAP user deletion from the admin UI, and stores password-reset one-time codes only as SHA-256 hashes.
 
 ## Features
 
 - Public registration form
 - Email confirmation code flow
+- Hashed 8-digit one-time codes for registration and password reset
 - LLDAP user creation
 - Pending approval workflow
 - Admin approval and rejection actions
 - Assignable LLDAP group management
 - Configurable default groups for approved users
 - Password reset flow
-- Password bridge integration for setting and changing LLDAP passwords
+- Direct LDAP password writer for setting and changing LLDAP passwords
+- Legacy password bridge fallback
 - Configurable mail templates
 - Configurable password policy
 - Optional Have I Been Pwned password check
@@ -33,13 +35,14 @@ Version 0.1.3 adds additional hardening around public routes, password-reset enu
 
 ## Requirements
 
-- Nextcloud
+- Nextcloud 33
 - PHP compatible with your Nextcloud version
 - LLDAP
 - Working Nextcloud mail configuration
-- Password bridge service for LLDAP password changes
+- PHP LDAP extension with `ldap_exop_passwd`
+- Nextcloud LDAP integration configured for LLDAP
 
-The password bridge service is required for registration and password reset flows. Nextcloud can authenticate users through LDAP/LLDAP, but this app needs the bridge to set or change LLDAP passwords during account creation and password reset.
+Since v0.2.0, the recommended mode is the Direct LDAP password writer. The bridge is no longer required for normal setups and remains available only as a legacy fallback.
 
 ## Installation
 
@@ -68,8 +71,12 @@ Configure at least:
 - LLDAP admin password
 - Pending group ID
 - Blacklist group ID
-- Password bridge URL
-- Bridge secret
+- Password writer mode
+- LLDAP LDAP URL
+- LLDAP Base DN
+- LLDAP Admin DN if needed
+- LLDAP User-DN template
+- Legacy bridge URL and secret only if using bridge fallback
 - Login URL
 - Mail templates
 - Password policy
@@ -77,7 +84,7 @@ Configure at least:
 Use the built-in test buttons to verify:
 
 - LLDAP connection
-- Password bridge
+- Direct LDAP password writer or legacy bridge fallback
 - Mail delivery
 
 ## Release and signing status
@@ -88,9 +95,17 @@ This repository is currently distributed as an early GitHub pre-release. It is n
 
 Enhanced Registration creates users in LLDAP and assigns them to a pending group before approval. For production-like deployments, configure Nextcloud's LDAP login filter so that only approved groups can log in. Pending users must not be able to authenticate to Nextcloud before they are approved.
 
-## Password bridge
+## Password writer
 
-The app delegates password setting and password reset operations to a bridge service.
+The app uses the Direct LDAP password writer by default. It connects to the LLDAP LDAP endpoint and uses the LDAP password modify extended operation to set or reset passwords.
+
+Password reset codes are stored only as SHA-256 hashes. Users receive an 8-digit one-time code by email; the database never stores that manual code in plaintext.
+
+The legacy bridge is still included as a fallback option.
+
+## Legacy password bridge
+
+The bridge service is optional since v0.2.0 and should only be used for legacy fallback deployments.
 
 Expected flow:
 
@@ -112,7 +127,9 @@ In auto mode, the browser language is used. Unsupported languages fall back to E
 
 ## Security notes
 
-- Do not expose the password bridge publicly without additional protection.
+- Do not allow pending users to log in through the Nextcloud LDAP login filter.
+- Use Direct LDAP password writer where possible.
+- If using the legacy bridge, do not expose it publicly without additional protection.
 - Use a strong bridge secret.
 - Do not commit real configuration values or secrets.
 - Keep LLDAP admin credentials restricted.

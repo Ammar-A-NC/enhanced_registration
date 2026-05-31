@@ -327,7 +327,173 @@ class LldapService {
         return null;
     }
 
+    private function passwordWriterMode(): string {
+        $mode = strtolower(trim($this->config->getAppValue(
+            'enhanced_registration',
+            'password_writer',
+            'direct_ldap'
+        )));
+
+        $allowed = [
+            'direct_ldap',
+            'direct_ldap_with_bridge_fallback',
+            'bridge_legacy',
+        ];
+
+        if (!in_array($mode, $allowed, true)) {
+            return 'direct_ldap';
+        }
+
+        return $mode;
+    }
+
+    private function requiredAppValue(string $key, string $label): string {
+        $value = trim($this->config->getAppValue('enhanced_registration', $key, ''));
+
+        if ($value === '') {
+            throw new \RuntimeException($label . ' ist nicht konfiguriert.');
+        }
+
+        return $value;
+    }
+
+    private function dnEscape(string $value): string {
+        if (!function_exists('ldap_escape')) {
+            throw new \RuntimeException('PHP LDAP-Funktion ldap_escape fehlt.');
+        }
+
+        return ldap_escape($value, '', LDAP_ESCAPE_DN);
+    }
+
+    private function lldapLdapUrl(): string {
+        return $this->requiredAppValue('lldap_ldap_url', 'LLDAP LDAP URL');
+    }
+
+    private function lldapBaseDn(): string {
+        return $this->requiredAppValue('lldap_base_dn', 'LLDAP Base DN');
+    }
+
+    private function lldapAdminDn(): string {
+        $adminDn = trim($this->config->getAppValue('enhanced_registration', 'lldap_admin_dn', ''));
+
+        if ($adminDn !== '') {
+            return $adminDn;
+        }
+
+        $adminUser = $this->requiredAppValue('lldap_admin_user', 'LLDAP Admin User');
+        return 'uid=' . $this->dnEscape($adminUser) . ',ou=people,' . $this->lldapBaseDn();
+    }
+
+    private function lldapUserDn(string $userId): string {
+        $template = trim($this->config->getAppValue(
+            'enhanced_registration',
+            'lldap_user_dn_template',
+            'uid={uid},ou=people,{base}'
+        ));
+
+        if ($template === '') {
+            $template = 'uid={uid},ou=people,{base}';
+        }
+
+        return str_replace(
+            ['{uid}', '{base}'],
+            [$this->dnEscape($userId), $this->lldapBaseDn()],
+            $template
+        );
+    }
+
+    private function ldapErrorMessage($connection): string {
+        if (!$connection) {
+            return 'LDAP-Verbindung nicht verfügbar.';
+        }
+
+        $error = @ldap_error($connection);
+        $errno = @ldap_errno($connection);
+
+        if ($error === false || $error === '') {
+            return 'Unbekannter LDAP-Fehler.';
+        }
+
+        return 'LDAP-Fehler ' . (string)$errno . ': ' . (string)$error;
+    }
+
     public function setUserPassword(string $userId, string $password): void {
+        $mode = $this->passwordWriterMode();
+
+        if ($mode === 'bridge_legacy') {
+            $this->setUserPasswordViaBridge($userId, $password);
+            return;
+        }
+
+        try {
+            $this->setUserPasswordDirectLdap($userId, $password);
+            return;
+        } catch (\Throwable $e) {
+            if ($mode !== 'direct_ldap_with_bridge_fallback') {
+                throw $e;
+            }
+
+            $this->logger->warning('Enhanced Registration: direct LDAP password writer failed, trying legacy bridge fallback', [
+                'user' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->setUserPasswordViaBridge($userId, $password);
+        }
+    }
+
+    private function setUserPasswordDirectLdap(string $userId, string $password): void {
+        if (!function_exists('ldap_connect') || !function_exists('ldap_bind') || !function_exists('ldap_exop_passwd')) {
+            throw new \RuntimeException('PHP LDAP mit ldap_exop_passwd ist nicht verfügbar.');
+        }
+
+        $url = $this->lldapLdapUrl();
+        $adminDn = $this->lldapAdminDn();
+        $adminPassword = $this->requiredAppValue('lldap_admin_password', 'LLDAP Admin-Passwort');
+        $userDn = $this->lldapUserDn($userId);
+
+        $connection = @ldap_connect($url);
+
+        if (!$connection) {
+            throw new \RuntimeException('LDAP-Verbindung konnte nicht initialisiert werden.');
+        }
+
+        try {
+            @ldap_set_option($connection, LDAP_OPT_PROTOCOL_VERSION, 3);
+            @ldap_set_option($connection, LDAP_OPT_REFERRALS, 0);
+
+            if (defined('LDAP_OPT_NETWORK_TIMEOUT')) {
+                @ldap_set_option($connection, LDAP_OPT_NETWORK_TIMEOUT, 5);
+            }
+
+            if (!@ldap_bind($connection, $adminDn, $adminPassword)) {
+                $this->logger->warning('Enhanced Registration: direct LDAP bind failed', [
+                    'url' => $url,
+                    'admin_dn' => $adminDn,
+                    'error' => $this->ldapErrorMessage($connection),
+                ]);
+
+                throw new \RuntimeException('LDAP Admin-Bind fehlgeschlagen: ' . $this->ldapErrorMessage($connection));
+            }
+
+            $result = @ldap_exop_passwd($connection, $userDn, '', $password);
+
+            if ($result === false) {
+                $this->logger->warning('Enhanced Registration: direct LDAP password modify failed', [
+                    'url' => $url,
+                    'user' => $userId,
+                    'user_dn' => $userDn,
+                    'error' => $this->ldapErrorMessage($connection),
+                ]);
+
+                throw new \RuntimeException('LDAP Passwortänderung fehlgeschlagen: ' . $this->ldapErrorMessage($connection));
+            }
+        } finally {
+            @ldap_unbind($connection);
+        }
+    }
+
+    private function setUserPasswordViaBridge(string $userId, string $password): void {
         $bridgeSecret = trim($this->config->getAppValue('enhanced_registration', 'bridge_secret', ''));
         if ($bridgeSecret === '') {
             throw new \RuntimeException('LLDAP Bridge Secret ist nicht konfiguriert.');
@@ -396,6 +562,11 @@ class LldapService {
     public function getUsersWithGroups(): array {
         $response = $this->query(
             'query {
+                users {
+                    id
+                    email
+                    displayName
+                }
                 groups {
                     id
                     displayName
@@ -410,12 +581,28 @@ class LldapService {
 
         $users = [];
 
+        foreach ($response["data"]["users"] ?? [] as $user) {
+            $userId = (string)($user["id"] ?? "");
+
+            if ($userId === "") {
+                continue;
+            }
+
+            $users[$userId] = [
+                "id" => $userId,
+                "email" => (string)($user["email"] ?? ""),
+                "displayName" => (string)($user["displayName"] ?? ""),
+                "groups" => [],
+            ];
+        }
+
         foreach ($response["data"]["groups"] ?? [] as $group) {
             $groupId = (int)($group["id"] ?? 0);
             $groupName = (string)($group["displayName"] ?? "");
 
             foreach ($group["users"] ?? [] as $user) {
                 $userId = (string)($user["id"] ?? "");
+
                 if ($userId === "") {
                     continue;
                 }

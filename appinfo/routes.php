@@ -13,6 +13,7 @@ return [
         ['name' => 'register#approve', 'url' => '/admin/approve', 'verb' => 'POST'],
         ['name' => 'register#blacklist', 'url' => '/admin/blacklist', 'verb' => 'POST'],
         ['name' => 'register#saveSettings', 'url' => '/admin/settings', 'verb' => 'POST'],
+        ['name' => 'register#deleteUser', 'url' => '/admin/users/delete', 'verb' => 'POST'],
 
         ['name' => 'register#already', 'url' => '/already', 'verb' => 'GET'],
 

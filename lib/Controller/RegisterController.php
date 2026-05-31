@@ -246,8 +246,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         $this->mailer->send($message);
     }
 
-    private function sendPasswordResetMail(string $email, string $token): void {
-        $resetLink = $this->urlGenerator->getAbsoluteURL("/index.php/apps/enhanced_registration/passreset/verify?token=" . urlencode($token));
+    private function sendPasswordResetMail(string $email, string $token, string $code): void {
+        $resetLink = $this->urlGenerator->getAbsoluteURL(
+            "/index.php/apps/enhanced_registration/passreset/verify?token=" . urlencode($token)
+        );
 
         $message = $this->mailer->createMessage();
         $message->setTo([$email]);
@@ -255,7 +257,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             $this->mailTemplate('mail_password_reset_subject', '{brand}: Passwort zurücksetzen'),
             [
                 'brand' => $this->brandName(),
-                'code' => $token,
+                'code' => $code,
                 'link' => $resetLink,
             ]
         ));
@@ -266,10 +268,11 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             ),
             [
                 'brand' => $this->brandName(),
-                'code' => $token,
+                'code' => $code,
                 'link' => $resetLink,
             ]
         ));
+
         $this->mailer->send($message);
     }
 
@@ -962,6 +965,11 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             "lldap_pending_group_id",
             "lldap_blacklist_group_id",
             "rejection_action",
+            "password_writer",
+            "lldap_ldap_url",
+            "lldap_base_dn",
+            "lldap_admin_dn",
+            "lldap_user_dn_template",
             "bridge_url",
             "login_url",
             "registration_success_redirect_url",
@@ -1258,6 +1266,69 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     }
 
 
+    /**
+     * @AdminRequired
+     */
+    public function deleteUser(): RedirectResponse {
+        $userId = trim((string)$this->request->getParam("userId", ""));
+
+        if ($userId === "") {
+            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=user_delete_failed");
+        }
+
+        $protectedUserIds = array_filter(array_map(
+            'trim',
+            explode(',', (string)$this->config->getAppValue('enhanced_registration', 'protected_user_ids', 'admin'))
+        ));
+
+        $lldapAdminUser = trim((string)$this->config->getAppValue('enhanced_registration', 'lldap_admin_user', ''));
+
+        if ($lldapAdminUser !== '') {
+            $protectedUserIds[] = $lldapAdminUser;
+        }
+
+        $protectedUserIds = array_values(array_unique(array_filter($protectedUserIds)));
+
+        if (in_array($userId, $protectedUserIds, true)) {
+            $this->logger->warning($this->brandName() . ': protected user deletion blocked', [
+                'user' => $userId,
+            ]);
+
+            $this->audit('user_delete_blocked', [
+                'user' => $userId,
+            ]);
+
+            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=user_delete_blocked");
+        }
+
+        try {
+            $this->lldapService->deleteUser($userId);
+
+            $this->audit('user_deleted', [
+                'user' => $userId,
+            ]);
+
+            $this->logger->warning($this->brandName() . ': user deleted from LLDAP', [
+                'user' => $userId,
+            ]);
+
+            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=user_deleted");
+        } catch (\Throwable $e) {
+            $this->logger->error($this->brandName() . ': user deletion failed', [
+                'user' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->audit('user_delete_failed', [
+                'user' => $userId,
+            ]);
+
+            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=user_delete_failed");
+        }
+    }
+
+
+
     #[PublicPage]
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -1295,8 +1366,8 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                 $user = $this->lldapService->findUserByEmail($email);
 
                 if ($user) {
-                    $token = $this->passwordResetService->createReset($email, (string)$user['id']);
-                    $this->sendPasswordResetMail($email, $token);
+                    $reset = $this->passwordResetService->createReset($email, (string)$user['id']);
+                    $this->sendPasswordResetMail($email, (string)$reset['token'], (string)$reset['code']);
                     $this->audit('password_reset_requested', $this->auditEmailContext($email));
                 }
             } catch (\Throwable $e) {
@@ -1344,8 +1415,8 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                 $user = $this->lldapService->findUserByEmail($email);
 
                 if ($user) {
-                    $token = $this->passwordResetService->createReset($email, (string)$user['id']);
-                    $this->sendPasswordResetMail($email, $token);
+                    $reset = $this->passwordResetService->createReset($email, (string)$user['id']);
+                    $this->sendPasswordResetMail($email, (string)$reset['token'], (string)$reset['code']);
                     $this->audit('password_reset_code_resent', $this->auditEmailContext($email));
                 }
             } catch (\Throwable $e) {
@@ -1365,8 +1436,19 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[PublicPage]
     #[NoAdminRequired]
     #[NoCSRFRequired]
+    #[PublicPage]
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function verifypassreset(): TemplateResponse {
         $token = trim((string)$this->request->getParam('token'));
+        $code = preg_replace('/\D+/', '', (string)$this->request->getParam('code'));
+
+        if (!is_string($code)) {
+            $code = '';
+        }
+
+        $resetKey = $token !== '' ? $token : $code;
+
         $rateLimitMessage = $this->checkRateLimitAndRecord('password_reset_verify', $this->clientRateLimitIdentity());
 
         if ($rateLimitMessage !== null) {
@@ -1375,7 +1457,13 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             ], 'guest');
         }
 
-        $reset = $this->passwordResetService->getValidReset($token);
+        if ($resetKey === '') {
+            return $this->noStoreTemplate('passreset_code', [
+                'message' => 'Bitte den 8-stelligen Bestätigungscode eingeben.'
+            ], 'guest');
+        }
+
+        $reset = $this->passwordResetService->getValidReset($resetKey);
 
         if (!$reset) {
             return $this->noStoreTemplate('passreset_code', [
@@ -1384,7 +1472,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         }
 
         return $this->noStoreTemplate('passreset_set', [
-            'token' => $token
+            'token' => $resetKey
         ], 'guest');
     }
 

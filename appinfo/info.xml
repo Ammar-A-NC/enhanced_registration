@@ -2,11 +2,11 @@
 <info>
   <id>enhanced_registration</id>
   <name>Enhanced Registration</name>
-  <summary>Registration and approval flow for Nextcloud installations using LLDAP</summary>
-  <description>Registration with mail verification, admin approval, LLDAP provisioning, group assignment, password reset, and password bridge integration.</description>
-  <version>0.1.4</version>
+  <summary>Registration, approval, and password reset for Nextcloud with LLDAP</summary>
+  <description>Approval-based registration and password reset for Nextcloud installations using LLDAP, including email verification, pending users, group assignment, Direct LDAP password changes, and legacy bridge fallback.</description>
+  <version>0.2.0</version>
   <licence>agpl</licence>
-  <author>Ammar A. and contributors</author>
+  <author>Ammar Ajaaj and contributors</author>
   <namespace>EnhancedRegistration</namespace>
   <category>tools</category>
   <dependencies>

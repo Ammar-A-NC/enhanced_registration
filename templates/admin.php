@@ -63,6 +63,9 @@ $msg = $_GET['msg'] ?? '';
 $messages = [
     'settings_saved' => 'Einstellungen gespeichert.',
     'user_groups_saved' => 'Benutzer-Berechtigungen gespeichert.',
+    'user_deleted' => 'Benutzer wurde aus LLDAP gelöscht.',
+    'user_delete_failed' => 'Benutzer konnte nicht gelöscht werden. Bitte Logs prüfen.',
+    'user_delete_blocked' => 'Geschützter Benutzer wurde nicht gelöscht.',
     'approved' => 'Registrierungsantrag freigegeben.',
     'blacklisted' => 'Registrierungsantrag abgelehnt und zur Blacklist hinzugefügt.',
     'mail_template_invalid' => 'Mail-Vorlage nicht gespeichert: Ein Pflicht-Platzhalter fehlt oder wurde verändert.',
@@ -80,6 +83,9 @@ $messages = [
 $messageTypes = [
     'settings_saved' => 'success',
     'user_groups_saved' => 'success',
+    'user_deleted' => 'warning',
+    'user_delete_failed' => 'error',
+    'user_delete_blocked' => 'error',
     'approved' => 'success',
     'blacklisted' => 'warning',
     'mail_template_invalid' => 'error',
@@ -131,6 +137,13 @@ $assignableGroups = array_filter($groups, function ($group) use ($pendingGroupId
 
 $setupChecks = [];
 
+$passwordWriter = (string)($settings['password_writer'] ?? 'direct_ldap');
+
+if (!in_array($passwordWriter, ['direct_ldap', 'direct_ldap_with_bridge_fallback', 'bridge_legacy'], true)) {
+    $passwordWriter = 'direct_ldap';
+}
+
+
 $setupChecks[] = [
     'label' => 'Branding gesetzt',
     'ok' => trim((string)($settings['brand_name'] ?? '')) !== '',
@@ -161,15 +174,44 @@ $setupChecks[] = [
     'ok' => trim((string)($settings['lldap_blacklist_group_id'] ?? '')) !== '',
 ];
 
-$setupChecks[] = [
-    'label' => 'Bridge URL gesetzt',
-    'ok' => trim((string)($settings['bridge_url'] ?? '')) !== '',
-];
+if ($passwordWriter !== 'bridge_legacy') {
+    $setupChecks[] = [
+        'label' => 'PHP LDAP Modul verfügbar',
+        'ok' => (($settings['has_php_ldap'] ?? '0') === '1'),
+    ];
 
-$setupChecks[] = [
-    'label' => 'Bridge Secret gespeichert',
-    'ok' => (($settings['has_bridge_secret'] ?? '0') === '1'),
-];
+    $setupChecks[] = [
+        'label' => 'LDAP Passwortänderung verfügbar',
+        'ok' => (($settings['has_ldap_exop_passwd'] ?? '0') === '1'),
+    ];
+
+    $setupChecks[] = [
+        'label' => 'LLDAP LDAP URL gesetzt',
+        'ok' => trim((string)($settings['lldap_ldap_url'] ?? '')) !== '',
+    ];
+
+    $setupChecks[] = [
+        'label' => 'LLDAP Base DN gesetzt',
+        'ok' => trim((string)($settings['lldap_base_dn'] ?? '')) !== '',
+    ];
+
+    $setupChecks[] = [
+        'label' => 'LLDAP User-DN Template gesetzt',
+        'ok' => trim((string)($settings['lldap_user_dn_template'] ?? '')) !== '',
+    ];
+}
+
+if ($passwordWriter === 'bridge_legacy' || $passwordWriter === 'direct_ldap_with_bridge_fallback') {
+    $setupChecks[] = [
+        'label' => 'Legacy Bridge URL gesetzt',
+        'ok' => trim((string)($settings['bridge_url'] ?? '')) !== '',
+    ];
+
+    $setupChecks[] = [
+        'label' => 'Legacy Bridge Secret gespeichert',
+        'ok' => (($settings['has_bridge_secret'] ?? '0') === '1'),
+    ];
+}
 
 $setupChecks[] = [
     'label' => 'Login URL gesetzt',
@@ -226,7 +268,7 @@ if (in_array($msg, ['settings_saved', 'mail_template_invalid', 'lldap_test_ok', 
     $initialAdminPage = 'settings';
 } elseif (in_array($msg, ['audit_cleared', 'audit_settings_saved'], true)) {
     $initialAdminPage = 'audit';
-} elseif ($msg === 'user_groups_saved') {
+} elseif (in_array($msg, ['user_groups_saved', 'user_deleted', 'user_delete_failed', 'user_delete_blocked'], true)) {
     $initialAdminPage = 'users';
 } elseif (in_array($msg, ['approved', 'blacklisted'], true)) {
     $initialAdminPage = 'pending';
@@ -261,7 +303,11 @@ if (!is_array($auditEvents)) {
     <div class="nc-setup-status <?php echo $setupOk ? 'ok' : 'warn'; ?>">
         <h3>Setup-Status</h3>
         <p class="nc-muted">
-            Diese Übersicht zeigt, ob die wichtigsten Einstellungen gesetzt sind. Über die Buttons unten kannst du LLDAP, Bridge und Mailversand testen.
+            Diese Übersicht zeigt, ob die wichtigsten Einstellungen gesetzt sind. Direct LDAP ist der empfohlene Password Writer. Die Bridge ist nur noch Legacy/Fallback.
+        </p>
+        <p class="nc-admin-message warning">
+            Wichtig: Die Pending-Gruppe darf im Nextcloud LDAP-Loginfilter nicht zur Anmeldung berechtigt sein.
+            Ausstehende Benutzer sollen erst nach Admin-Freigabe durch ihre Zielgruppen loginfähig werden.
         </p>
 
         <div class="nc-setup-grid">
@@ -352,7 +398,62 @@ if (!is_array($auditEvents)) {
                 </div>
 
                 <div class="nc-settings-card">
-                    <h4>Bridge & Weiterleitung</h4>
+                    <h4>Password Writer & Weiterleitung</h4>
+
+                    <label>Password Writer</label>
+                    <select name="password_writer">
+                        <option value="direct_ldap" <?php if (($settings['password_writer'] ?? 'direct_ldap') === 'direct_ldap') { echo 'selected'; } ?>>
+                            Direct LDAP password writer empfohlen
+                        </option>
+                        <option value="direct_ldap_with_bridge_fallback" <?php if (($settings['password_writer'] ?? 'direct_ldap') === 'direct_ldap_with_bridge_fallback') { echo 'selected'; } ?>>
+                            Direct LDAP mit Legacy-Bridge-Fallback
+                        </option>
+                        <option value="bridge_legacy" <?php if (($settings['password_writer'] ?? 'direct_ldap') === 'bridge_legacy') { echo 'selected'; } ?>>
+                            Legacy Bridge only
+                        </option>
+                    </select>
+                    <p class="nc-muted">
+                        Direct LDAP nutzt PHP-LDAP und ldap_exop_passwd direkt aus der Nextcloud-App.
+                        Die Bridge bleibt nur noch als Legacy-Fallback erhalten.
+                    </p>
+
+                    <label>PHP LDAP Status</label>
+                    <p class="nc-muted">
+                        ldap_connect:
+                        <?php echo (($settings['has_php_ldap'] ?? '0') === '1') ? 'verfügbar' : 'fehlt'; ?> ·
+                        ldap_exop_passwd:
+                        <?php echo (($settings['has_ldap_exop_passwd'] ?? '0') === '1') ? 'verfügbar' : 'fehlt'; ?>
+                    </p>
+
+                    <label>LLDAP LDAP URL</label>
+                    <input type="text" name="lldap_ldap_url" value="<?php p($settings['lldap_ldap_url'] ?? ''); ?>" placeholder="ldap://lldap:3890">
+                    <p class="nc-muted">
+                        Das ist die LDAP-Schnittstelle von LLDAP, nicht die GraphQL-URL.
+                    </p>
+
+                    <label>LLDAP Base DN</label>
+                    <input type="text" name="lldap_base_dn" value="<?php p($settings['lldap_base_dn'] ?? ''); ?>" placeholder="dc=example,dc=com">
+                    <p class="nc-muted">
+                        Beispiel: <code>dc=example,dc=com</code>. Muss zu Ihrer LLDAP-Konfiguration passen.
+                    </p>
+
+                    <label>LLDAP Admin DN optional</label>
+                    <input type="text" name="lldap_admin_dn" value="<?php p($settings['lldap_admin_dn'] ?? ''); ?>" placeholder="uid=admin,ou=people,dc=example,dc=com">
+                    <p class="nc-muted">
+                        Leer lassen, wenn der Admin-DN automatisch aus LLDAP Admin User + Base DN gebaut werden soll.
+                    </p>
+
+                    <label>LLDAP User-DN Template</label>
+                    <input type="text" name="lldap_user_dn_template" value="<?php p($settings['lldap_user_dn_template'] ?? 'uid={uid},ou=people,{base}'); ?>" placeholder="uid={uid},ou=people,{base}">
+                    <p class="nc-muted">
+                        Platzhalter: <code>{uid}</code> für die User-ID, <code>{base}</code> für die Base DN.
+                    </p>
+
+                    <hr>
+                    <h4>Legacy Bridge / Fallback</h4>
+                    <p class="nc-muted">
+                        Nur nötig, wenn der Password Writer auf Bridge oder Fallback gestellt ist.
+                    </p>
 
                     <label>Bridge URL</label>
                     <input type="text" name="bridge_url" value="<?php p($settings['bridge_url'] ?? ''); ?>" placeholder="http://your-bridge-host:18081">
@@ -372,8 +473,8 @@ if (!is_array($auditEvents)) {
                     <p class="nc-muted">
                         Platzhalter: {brand}, {code}, {link}, {displayName}, {userId}, {groups}, {loginUrl}
                     </p>
-                    <p class="nc-admin-message error">
-                        Pflicht-Platzhalter bitte nicht entfernen oder verändern. Beim Speichern werden sie geprüft.
+                    <p class="nc-admin-message warning">
+                        Hinweis: Pflicht-Platzhalter bitte nicht entfernen oder verändern. Beim Speichern werden sie geprüft.
                     </p>
 
                     <label>Betreff: Konto bestätigen</label>
@@ -457,6 +558,11 @@ if (!is_array($auditEvents)) {
                     </div>
                     <p class="nc-muted">
                         Diese Gruppen sind bei ausstehenden Registrierungen automatisch vorausgewählt. Sie können pro Benutzer weiterhin angepasst werden.
+                    </p>
+
+                    <p class="nc-admin-message warning">
+                        LDAP-Loginfilter-Hinweis: Die Pending-Gruppe sollte in Nextcloud nicht als erlaubte Login-Gruppe gelten.
+                        Empfohlen ist ein Loginfilter, der nur freigegebene Zielgruppen erlaubt und Pending/Blacklist ausschließt.
                     </p>
 
                     <label>Geschützte Gruppen-Namen</label>
@@ -621,6 +727,10 @@ if (!is_array($auditEvents)) {
 
     <div class="nc-admin-page <?php echo $initialAdminPage === 'users' ? 'active' : ''; ?>" data-page="users">
     <h3 style="margin-top:32px;">Benutzer & Berechtigungen</h3>
+    <p class="nc-admin-message warning">
+        Der Löschbutton entfernt Benutzer vollständig aus LLDAP. Das ist nicht nur eine Gruppenänderung.
+        Geschützte Benutzer-IDs werden blockiert.
+    </p>
 
     <input
         type="text"
@@ -678,6 +788,19 @@ if (!is_array($auditEvents)) {
 
                     <button type="submit" class="button" style="margin-top:12px;">
                         Berechtigungen speichern
+                    </button>
+                </form>
+
+                <form
+                    method="POST"
+                    action="/index.php/apps/enhanced_registration/admin/users/delete"
+                    onsubmit="return confirm('Benutzer wirklich vollständig aus LLDAP löschen? Diese Aktion kann nicht rückgängig gemacht werden.');"
+                    style="margin-top:12px;"
+                >
+                    <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
+                    <input type="hidden" name="userId" value="<?php p($user['id'] ?? ''); ?>">
+                    <button type="submit" class="button nc-btn-blacklist">
+                        Benutzer aus LLDAP löschen
                     </button>
                 </form>
             </div>

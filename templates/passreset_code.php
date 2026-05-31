@@ -9,7 +9,17 @@
 
     <form method="get" action="/index.php/apps/enhanced_registration/passreset/verify">
         <p>
-            <input type="text" name="token" placeholder="Bestätigungscode" required style="width:100%;padding:12px;">
+            <input
+                type="text"
+                name="code"
+                placeholder="8-stelliger Bestätigungscode"
+                inputmode="numeric"
+                pattern="[0-9]{8}"
+                maxlength="8"
+                autocomplete="one-time-code"
+                required
+                style="width:100%;padding:12px;"
+            >
         </p>
 
         <p>
@@ -24,8 +34,8 @@
         </form>
     <?php endif; ?>
 
-<p style="text-align:center;margin-top:18px;">
-    <a href="/login" class="button">Zurück zum Login</a>
-</p>
+    <p style="text-align:center;margin-top:18px;">
+        <a href="/login" class="button">Zurück zum Login</a>
+    </p>
 </div>
 <?php include __DIR__ . '/_i18n_end.php'; ?>
