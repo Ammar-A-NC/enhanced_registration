@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0
+
+Direct LDAP password writer pre-release.
+
+- Add Direct LDAP password writer using PHP LDAP and ldap_exop_passwd.
+- Store password-reset manual codes as SHA-256 hashes and use 8-digit one-time codes.
+- Keep the password bridge as legacy-only fallback.
+- Add admin settings for LDAP URL, Base DN, Admin DN, User-DN template, and password writer mode.
+- Show all LLDAP users in the admin UI, including users without group memberships.
+- Add full LLDAP user deletion from the admin UI with protected-user safeguards.
+- Add admin UI warnings for Pending group and Nextcloud LDAP login-filter configuration.
+- Update README and app metadata toward an App-Store-friendly project description.
+- Bump app version to 0.2.0.
+
 ## 0.1.4
 
 Usability pre-release.
