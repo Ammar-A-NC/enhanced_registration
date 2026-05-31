@@ -444,13 +444,15 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     }
 
     private function clientRateLimitIdentity(): string {
-        $remote = (string)($_SERVER['REMOTE_ADDR'] ?? 'anonymous');
+        if (method_exists($this->request, 'getRemoteAddress')) {
+            $remote = trim((string)$this->request->getRemoteAddress());
 
-        if ($remote === '') {
-            return 'anonymous';
+            if ($remote !== '') {
+                return $remote;
+            }
         }
 
-        return $remote;
+        return trim((string)($_SERVER['REMOTE_ADDR'] ?? 'anonymous')) ?: 'anonymous';
     }
 
 
@@ -504,7 +506,16 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             $sha1 = strtoupper(sha1($password));
             $prefix = substr($sha1, 0, 5);
             $suffix = substr($sha1, 5);
-            $response = @file_get_contents("https://api.pwnedpasswords.com/range/" . $prefix);
+            $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 5,
+                'ignore_errors' => true,
+                'header' => "User-Agent: EnhancedRegistration/0.2.1\\r\\n",
+            ],
+        ]);
+
+        $response = @file_get_contents("https://api.pwnedpasswords.com/range/" . $prefix, false, $context);
 
             if ($response !== false && strpos($response, $suffix . ":") !== false) {
                 return 'Dieses Passwort wurde bereits in Datenlecks gefunden. Bitte wählen Sie ein anderes Passwort.';
@@ -637,47 +648,67 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function resendCode(): TemplateResponse {
-        $email = trim((string)$this->request->getParam('email'));
+        $email = trim((string)$this->request->getParam('email', ''));
+        $genericMessage = 'Falls eine aktive Registrierung für diese E-Mail-Adresse existiert, wurde ein neuer Code gesendet.';
 
-        if ($email === '') {
-            return $this->noStoreTemplate('checkmail', [
-                'message' => 'Bitte geben Sie Ihre E-Mail-Adresse erneut ein.'
-            ], 'guest');
-        }
-
-        $rateLimitMessage = $this->checkRateLimitAndRecord('registration_resend', $email);
+        $rateLimitMessage = $this->checkRateLimitAndRecord(
+            'registration_resend_ip',
+            $this->clientRateLimitIdentity()
+        );
 
         if ($rateLimitMessage !== null) {
             return $this->noStoreTemplate('checkmail', [
                 'email' => $email,
-                'message' => $rateLimitMessage
-            ], 'guest');
+                'message' => $rateLimitMessage,
+            ]);
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->noStoreTemplate('checkmail', [
+                'message' => 'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
+            ]);
+        }
+
+        if (!$this->isEmailDomainAllowed($email)) {
+            return $this->noStoreTemplate('checkmail', [
+                'email' => $email,
+                'message' => 'Diese E-Mail-Domain ist für die Registrierung nicht zugelassen.',
+            ]);
+        }
+
+        $rateLimitMessage = $this->checkRateLimitAndRecord(
+            'registration_resend_email',
+            $email
+        );
+
+        if ($rateLimitMessage !== null) {
+            return $this->noStoreTemplate('checkmail', [
+                'email' => $email,
+                'message' => $rateLimitMessage,
+            ]);
         }
 
         try {
-            $registrationTokens = $this->registrationService->resendRegistration($email);
+            $registration = $this->registrationService->resendRegistration($email);
+
             $this->sendRegistrationConfirmationMail(
                 $email,
-                (string)$registrationTokens['code'],
-                (string)$registrationTokens['token']
+                (string)$registration['code'],
+                (string)$registration['token']
             );
+
             $this->audit('registration_code_resent', $this->auditEmailContext($email));
         } catch (\Throwable $e) {
-            $this->logger->warning($this->brandName() . ': registration code resend failed', [
+            $this->logger->warning($this->brandName() . ': registration code resend skipped or failed', [
                 'email' => $email,
                 'error' => $e->getMessage(),
             ]);
-
-            return $this->noStoreTemplate('checkmail', [
-                'email' => $email,
-                'message' => 'Der Bestätigungscode konnte nicht erneut gesendet werden.'
-            ], 'guest');
         }
 
         return $this->noStoreTemplate('checkmail', [
             'email' => $email,
-            'message' => 'Bestätigungscode wurde erneut gesendet.'
-        ], 'guest');
+            'message' => $genericMessage,
+        ]);
     }
 
     #[PublicPage]
@@ -1432,10 +1463,6 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             'message' => $genericMessage
         ]);
     }
-
-    #[PublicPage]
-    #[NoAdminRequired]
-    #[NoCSRFRequired]
     #[PublicPage]
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -1516,11 +1543,28 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             ], 'guest');
         }
 
-        $this->lldapService->setUserPassword((string)$reset['user_id'], $password);
-        $this->passwordResetService->markUsed($token);
-        $this->audit('password_changed', [
-            'user' => (string)$reset['user_id'],
-        ]);
+        try {
+            $this->lldapService->setUserPassword((string)$reset['user_id'], $password);
+            $this->passwordResetService->markUsed($token);
+
+            $this->audit('password_changed', [
+                'user' => (string)$reset['user_id'],
+            ]);
+        } catch (\Throwable $e) {
+            $this->logger->error($this->brandName() . ': password change failed', [
+                'user' => (string)($reset['user_id'] ?? ''),
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->audit('password_change_failed', [
+                'user' => (string)($reset['user_id'] ?? ''),
+            ]);
+
+            return $this->noStoreTemplate('passreset_set', [
+                'token' => $token,
+                'message' => 'Das Passwort konnte aktuell nicht geändert werden. Bitte später erneut versuchen oder einen Administrator kontaktieren.'
+            ], 'guest');
+        }
 
         $loginUrl = $this->safeRedirectUrl(
             $this->config->getAppValue('enhanced_registration', 'login_url', '/login'),

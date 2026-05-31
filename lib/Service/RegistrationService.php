@@ -149,6 +149,6 @@ class RegistrationService {
             ];
         }
 
-        return $this->createRegistration($email);
+        throw new \RuntimeException('Keine aktive Registrierung für diese E-Mail-Adresse.');
     }
 }

@@ -1,11 +1,15 @@
 # Enhanced Registration
 
-> **Current recommended release:** `v0.2.0`  
-> `v0.2.0` introduces the Direct LDAP password writer. The password bridge is now only a legacy fallback.
+> **Current recommended release:** `v0.2.1`  
+> `v0.2.1` hardens the registration resend-code flow and keeps the Direct LDAP password writer as the recommended mode.
 
 Enhanced Registration is a community Nextcloud app for self-hosted installations that use LLDAP as their identity backend and need an approval-based registration and password reset flow.
 
 It is not a replacement for every use case covered by the official Registration app. It targets a narrower setup: Nextcloud + LLDAP. Since v0.2.0, passwords are changed directly through LDAP; the bridge is only a legacy fallback.
+
+## v0.2.1 notes
+
+Version 0.2.1 hardens `/resend-code`, adds IP-based resend rate limiting, prevents resend from creating new registrations, improves password-reset error handling, adds HIBP timeout handling, and improves the admin user list layout.
 
 ## v0.2.0 notes
 

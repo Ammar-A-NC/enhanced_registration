@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.1
+
+Hardening hotfix.
+
+- Harden `/resend-code` with email validation, domain checks, and IP/email rate limits.
+- Prevent resend-code from creating new registrations.
+- Use Nextcloud request remote address for rate-limit identity where available.
+- Catch Direct LDAP password-change errors during password reset and show a user-friendly message.
+- Add timeout handling to the HaveIBeenPwned password check.
+- Remove duplicate password-reset route attributes if present.
+- Improve login-link JavaScript to avoid continuous polling.
+- Harden legacy bridge example documentation and localhost binding.
+- Improve admin Users & Permissions layout with compact expandable rows.
+- Bump app version to 0.2.1.
+
 ## 0.2.0
 
 Direct LDAP password writer pre-release.

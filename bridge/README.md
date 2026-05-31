@@ -67,3 +67,9 @@ In the Enhanced Registration app settings, set:
 - Treat `LDAP_BIND_PASSWORD` and `BRIDGE_SECRET` as sensitive.
 - The bridge validates usernames and escapes LDAP DN values before calling `ldappasswd`.
 - Use HTTPS or a trusted private network between Nextcloud and the bridge.
+
+## Security note
+
+The bridge is legacy fallback only since Enhanced Registration v0.2.0. Prefer the Direct LDAP password writer for normal deployments.
+
+If you still use the bridge, do not expose it publicly. Bind it to localhost or an internal Docker network only, use a strong shared secret, and restrict access at the firewall or reverse-proxy layer.
