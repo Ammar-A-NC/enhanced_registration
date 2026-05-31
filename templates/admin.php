@@ -49,6 +49,27 @@
 .nc-audit-table th,.nc-audit-table td{border-bottom:1px solid #e5e5e5;padding:8px 10px;text-align:left;vertical-align:top}
 .nc-audit-table code{white-space:pre-wrap;word-break:break-word}
 .nc-audit-actions{margin:14px 0 18px}
+
+.nc-user-table{max-width:1100px;border:1px solid #ddd;border-radius:16px;overflow:hidden;background:#fff;margin-top:14px}
+.nc-user-table-head{display:grid;grid-template-columns:minmax(150px,1fr) minmax(180px,1.2fr) minmax(220px,1.5fr) 130px;gap:12px;padding:10px 14px;background:#f6f6f6;border-bottom:1px solid #ddd;font-weight:800;color:#555}
+.nc-user-row{border-bottom:1px solid #eee}
+.nc-user-row:last-child{border-bottom:none}
+.nc-user-summary{display:grid;grid-template-columns:minmax(150px,1fr) minmax(180px,1.2fr) minmax(220px,1.5fr) 130px;gap:12px;align-items:center;padding:12px 14px;cursor:pointer;list-style:none}
+.nc-user-summary::-webkit-details-marker{display:none}
+.nc-user-summary:hover{background:#fafafa}
+.nc-user-cell{word-break:break-word}
+.nc-user-id{font-weight:800}
+.nc-user-email{color:#666}
+.nc-user-actions{font-weight:700;color:#00679e;text-align:right}
+.nc-user-details{padding:14px 18px 18px;background:#fbfbfb;border-top:1px solid #eee}
+.nc-user-details-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.nc-user-details-actions form{margin:0}
+@media (max-width:800px){
+    .nc-user-table-head{display:none}
+    .nc-user-summary{grid-template-columns:1fr}
+    .nc-user-actions{text-align:left}
+}
+
 </style>
 <?php script('enhanced_registration', 'admin-users-search'); ?>
 <?php script('enhanced_registration', 'admin-toast-v2'); ?>
@@ -739,7 +760,14 @@ if (!is_array($auditEvents)) {
         style="width:100%;max-width:520px;margin:8px 0 18px;"
     >
 
-    <div class="nc-reg-grid" id="nc-user-list">
+    <div class="nc-user-table" id="nc-user-list">
+        <div class="nc-user-table-head">
+            <span>User</span>
+            <span>Name</span>
+            <span>E-Mail-Adresse</span>
+            <span></span>
+        </div>
+
         <?php foreach (($_['users'] ?? []) as $user): ?>
             <?php
                 $userId = (string)($user['id'] ?? '');
@@ -752,58 +780,64 @@ if (!is_array($auditEvents)) {
                     ($user['displayName'] ?? '') . ' ' .
                     ($user['email'] ?? '')
                 );
+
+                $currentGroupIds = array_map(function ($group) {
+                    return (string)($group['id'] ?? '');
+                }, $user['groups'] ?? []);
             ?>
-            <div class="nc-reg-card nc-user-card" data-search="<?php p($searchText); ?>">
-                <div class="nc-reg-user"><?php p($user['id'] ?? ''); ?></div>
-                <div class="nc-reg-name"><?php p($user['displayName'] ?? ''); ?></div>
-                <div class="nc-reg-mail"><?php p($user['email'] ?? ''); ?></div>
 
-                <?php
-                    $currentGroupIds = array_map(function ($group) {
-                        return (string)($group['id'] ?? '');
-                    }, $user['groups'] ?? []);
-                ?>
+            <details class="nc-user-row nc-user-card" data-search="<?php p($searchText); ?>">
+                <summary class="nc-user-summary">
+                    <span class="nc-user-cell nc-user-id"><?php p($user['id'] ?? ''); ?></span>
+                    <span class="nc-user-cell"><?php p($user['displayName'] ?? ''); ?></span>
+                    <span class="nc-user-cell nc-user-email"><?php p($user['email'] ?? ''); ?></span>
+                    <span class="nc-user-cell nc-user-actions">Berechtigungen öffnen</span>
+                </summary>
 
-                <form method="POST" action="/index.php/apps/enhanced_registration/admin/settings">
-                    <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
-                    <input type="hidden" name="save_type" value="user_groups">
-                    <input type="hidden" name="userId" value="<?php p($user['id'] ?? ''); ?>">
+                <div class="nc-user-details">
+                    <form method="POST" action="/index.php/apps/enhanced_registration/admin/settings">
+                        <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
+                        <input type="hidden" name="save_type" value="user_groups">
+                        <input type="hidden" name="userId" value="<?php p($user['id'] ?? ''); ?>">
 
-                    <div class="nc-muted">Berechtigungen:</div>
+                        <div class="nc-muted">Berechtigungen:</div>
 
-                    <div class="nc-group-list" style="margin-top:8px;">
-                        <?php foreach ($assignableGroups as $group): ?>
-                            <?php $gid = (string)($group['id'] ?? ''); ?>
-                            <label>
-                                <input
-                                    type="checkbox"
-                                    name="groupIds[]"
-                                    value="<?php p($gid); ?>"
-                                    <?php if (in_array($gid, $currentGroupIds, true)) { echo 'checked'; } ?>
-                                >
-                                <?php p(($group['displayName'] ?? '') . ' #' . $gid); ?>
-                            </label>
-                        <?php endforeach; ?>
-                    </div>
+                        <div class="nc-group-list" style="margin-top:8px;">
+                            <?php foreach ($assignableGroups as $group): ?>
+                                <?php $gid = (string)($group['id'] ?? ''); ?>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        name="groupIds[]"
+                                        value="<?php p($gid); ?>"
+                                        <?php if (in_array($gid, $currentGroupIds, true)) { echo 'checked'; } ?>
+                                    >
+                                    <?php p(($group['displayName'] ?? '') . ' #' . $gid); ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
 
-                    <button type="submit" class="button" style="margin-top:12px;">
-                        Berechtigungen speichern
-                    </button>
-                </form>
+                        <div class="nc-user-details-actions">
+                            <button type="submit" class="button">
+                                Berechtigungen speichern
+                            </button>
+                        </div>
+                    </form>
 
-                <form
-                    method="POST"
-                    action="/index.php/apps/enhanced_registration/admin/users/delete"
-                    onsubmit="return confirm('Benutzer wirklich vollständig aus LLDAP löschen? Diese Aktion kann nicht rückgängig gemacht werden.');"
-                    style="margin-top:12px;"
-                >
-                    <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
-                    <input type="hidden" name="userId" value="<?php p($user['id'] ?? ''); ?>">
-                    <button type="submit" class="button nc-btn-blacklist">
-                        Benutzer aus LLDAP löschen
-                    </button>
-                </form>
-            </div>
+                    <form
+                        method="POST"
+                        action="/index.php/apps/enhanced_registration/admin/users/delete"
+                        onsubmit="return confirm('Benutzer wirklich vollständig aus LLDAP löschen? Diese Aktion kann nicht rückgängig gemacht werden.');"
+                        style="margin-top:12px;"
+                    >
+                        <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
+                        <input type="hidden" name="userId" value="<?php p($user['id'] ?? ''); ?>">
+                        <button type="submit" class="button nc-btn-blacklist">
+                            Benutzer aus LLDAP löschen
+                        </button>
+                    </form>
+                </div>
+            </details>
         <?php endforeach; ?>
     </div>
     </div>
