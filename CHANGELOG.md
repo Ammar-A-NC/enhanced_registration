@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4
+
+Usability pre-release.
+
+- Integrate login-page registration and password-reset links into the main app.
+- Remove the need for a separate login-link companion app.
+- Bump app version to 0.1.4.
+
 ## 0.1.3
 
 Security and hardening pre-release.
