@@ -239,6 +239,108 @@ if ($lang === 'en') {
         'Audit-Einstellungen gespeichert.' => 'Audit settings saved.',
     ];
 
+
+    $map = array_merge($map, [
+        // v0.2.3 admin messages
+        'Bitte wählen Sie mindestens eine freigegebene Zielgruppe aus. Der Benutzer bleibt in Pending.' => 'Please select at least one approved target group. The user remains pending.',
+        'Benutzer konnte nicht gelöscht werden. Bitte Logs prüfen.' => 'The user could not be deleted. Please check the logs.',
+        'Geschützter Benutzer wurde nicht gelöscht.' => 'Protected user was not deleted.',
+        'Benutzer wurde aus LLDAP gelöscht.' => 'User was deleted from LLDAP.',
+
+        // v0.2.3 access modes
+        'Zugriff' => 'Access',
+        'Registrierung' => 'Registration',
+        'Öffentlich' => 'Public',
+        'Nur lokale/LAN-Netzwerke' => 'Local/LAN networks only',
+        'Deaktiviert' => 'Disabled',
+        'Erlaubte Netzwerke für Registrierung' => 'Allowed networks for registration',
+        'Erlaubte Netzwerke für Passwortreset' => 'Allowed networks for password reset',
+        'CIDR-Liste, getrennt durch Komma, Leerzeichen oder neue Zeilen. Wird nur bei „Nur lokale/LAN-Netzwerke“ verwendet.' => 'CIDR list, separated by commas, spaces, or new lines. Only used for “Local/LAN networks only”.',
+        'Öffentlich erlaubt Registrierungen aus dem Internet. Lokal/LAN erlaubt nur Clients aus den unten konfigurierten Netzwerken. Deaktiviert blendet die Registrierung aus und blockiert neue Registrierungsaktionen.' => 'Public allows registrations from the internet. Local/LAN allows only clients from the configured networks below. Disabled hides registration and blocks new registration actions.',
+        'Standard ist öffentlich, damit Benutzer ihr Passwort auch außerhalb des LAN zurücksetzen können. Optional kann der Flow auf lokale/LAN-Netzwerke begrenzt oder deaktiviert werden.' => 'The default is public so users can reset their password outside the LAN. Optionally, the flow can be limited to local/LAN networks or disabled.',
+        'Die Registrierung ist aktuell nicht von diesem Netzwerk aus verfügbar.' => 'Registration is currently not available from this network.',
+        'Der Passwortreset ist aktuell nicht von diesem Netzwerk aus verfügbar.' => 'Password reset is currently not available from this network.',
+
+        // Public registration flow
+        'Vollständiger Name' => 'Full name',
+        'Bereits registriert' => 'Already registered',
+        'Es scheint so, als wären Sie bereits bei uns registriert.' => 'It looks like you are already registered.',
+        'Zum Login' => 'To login',
+        'Bestätigung fehlgeschlagen' => 'Verification failed',
+        'Code erneut eingeben' => 'Enter code again',
+        'Neue E-Mail anfordern' => 'Request a new email',
+        'Ein Fehler ist aufgetreten.' => 'An error occurred.',
+        'Ausstehende Registrierungen' => 'Pending registrations',
+        'Hier erscheinen später alle pending-users.' => 'Pending users will appear here later.',
+
+        // Password reset flow
+        'Gib hier deine E-Mail-Adresse ein.' => 'Enter your email address here.',
+        'Wir senden dir einen Bestätigungscode zum Zurücksetzen deines Passworts.' => 'We will send you a confirmation code to reset your password.',
+        'Bestätigungscode senden' => 'Send confirmation code',
+        'Code erneut senden' => 'Resend code',
+        'Keinen Code erhalten?' => 'Did not receive a code?',
+        'Passwort zurücksetzen' => 'Reset password',
+        'Neues Passwort setzen' => 'Set new password',
+        'Neues Passwort' => 'New password',
+        'Passwort wiederholen' => 'Repeat password',
+        'Passwort ändern' => 'Change password',
+        'Passwort geändert' => 'Password changed',
+        'Ihr Passwort wurde erfolgreich aktualisiert. Sie können sich nun mit dem neuen Passwort anmelden.' => 'Your password has been updated successfully. You can now log in with the new password.',
+
+        // Password rules exact German spellings
+        'Mindestens ein Großbuchstabe' => 'At least one uppercase letter',
+        'Passwörter stimmen überein' => 'Passwords match',
+
+        // Admin tabs and sections
+        'Setup' => 'Setup',
+        'Benutzer' => 'Users',
+        'Audit' => 'Audit',
+        'System' => 'System',
+        'Freigaben' => 'Approvals',
+        'Allgemein' => 'General',
+        'Domains' => 'Domains',
+        'Sicherheit' => 'Security',
+        'Benutzer löschen' => 'Delete user',
+        'Löschen' => 'Delete',
+        'Schließen' => 'Close',
+        'Details anzeigen' => 'Show details',
+        'Gruppen speichern' => 'Save groups',
+
+        // Direct LDAP / bridge wording
+        'Passwort-Writer' => 'Password writer',
+        'Direct LDAP' => 'Direct LDAP',
+        'Direct LDAP mit Bridge-Fallback' => 'Direct LDAP with bridge fallback',
+        'Legacy Bridge' => 'Legacy bridge',
+        'LLDAP LDAP URL' => 'LLDAP LDAP URL',
+        'LLDAP Base DN' => 'LLDAP base DN',
+        'LLDAP User-DN Template' => 'LLDAP user DN template',
+        'PHP LDAP Modul verfügbar' => 'PHP LDAP module available',
+        'LDAP Passwortänderung verfügbar' => 'LDAP password change available',
+        'LLDAP LDAP URL gesetzt' => 'LLDAP LDAP URL configured',
+        'LLDAP Base DN gesetzt' => 'LLDAP base DN configured',
+        'LLDAP User-DN Template gesetzt' => 'LLDAP user DN template configured',
+
+        // Mail template admin wording
+        'Konto bestätigen' => 'Confirm account',
+        'Konto freigegeben' => 'Account approved',
+        'Registrierung abgelehnt' => 'Registration rejected',
+        'Passwort zurücksetzen' => 'Reset password',
+        'Betreff' => 'Subject',
+        'Text' => 'Body',
+
+        // Audit/admin table labels
+        'Benutzer-ID' => 'User ID',
+        'Anzeigename' => 'Display name',
+        'E-Mail' => 'Email',
+        'Gruppen' => 'Groups',
+        'Status' => 'Status',
+        'Aktionen' => 'Actions',
+        'Domain' => 'Domain',
+        'Hash' => 'Hash',
+        'Erstellt' => 'Created',
+        'Aktualisiert' => 'Updated',
+    ]);
+
     $out = strtr($out, $map);
 }
 
