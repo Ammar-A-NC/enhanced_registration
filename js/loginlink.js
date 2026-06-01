@@ -1,8 +1,8 @@
 (function () {
     'use strict';
 
-    const registerUrl = '/index.php/apps/enhanced_registration/register';
-    const resetUrl = '/index.php/apps/enhanced_registration/passreset';
+    const registerUrl = OC.generateUrl('/apps/enhanced_registration/register');
+    const resetUrl = OC.generateUrl('/apps/enhanced_registration/passreset');
     const registerLinkId = 'enhanced-registration-register-link';
 
     function looksLikeLoginPage() {

@@ -511,7 +511,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                 'method' => 'GET',
                 'timeout' => 5,
                 'ignore_errors' => true,
-                'header' => "User-Agent: EnhancedRegistration/0.2.1\\r\\n",
+                'header' => "User-Agent: EnhancedRegistration/0.2.2\\r\\n",
             ],
         ]);
 
@@ -1173,6 +1173,54 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         }
     }
 
+    private function filterAssignableGroups(array $groups): array {
+        $pendingGroupId = (int)$this->config->getAppValue('enhanced_registration', 'lldap_pending_group_id', '0');
+        $blacklistGroupId = (int)$this->config->getAppValue('enhanced_registration', 'lldap_blacklist_group_id', '0');
+
+        $protectedGroupNames = array_filter(array_map('trim', explode(
+            ',',
+            strtolower((string)$this->config->getAppValue(
+                'enhanced_registration',
+                'protected_group_names',
+                'pending-users,blacklist'
+            ))
+        )));
+
+        $protectedGroupPrefixes = array_filter(array_map('trim', explode(
+            ',',
+            strtolower((string)$this->config->getAppValue(
+                'enhanced_registration',
+                'protected_group_prefixes',
+                'lldap_'
+            ))
+        )));
+
+        return array_values(array_filter($groups, function (array $group) use ($pendingGroupId, $blacklistGroupId, $protectedGroupNames, $protectedGroupPrefixes): bool {
+            $id = (int)($group['id'] ?? 0);
+            $name = strtolower((string)($group['displayName'] ?? ''));
+
+            if ($id <= 0) {
+                return false;
+            }
+
+            if ($id === $pendingGroupId || $id === $blacklistGroupId) {
+                return false;
+            }
+
+            if (in_array($name, $protectedGroupNames, true)) {
+                return false;
+            }
+
+            foreach ($protectedGroupPrefixes as $prefix) {
+                if ($prefix !== '' && strpos($name, $prefix) === 0) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
+    }
+
     /**
      * @AdminRequired
      */
@@ -1184,12 +1232,30 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             $groupIds = [$groupIds];
         }
 
-        $groupIds = array_values(array_unique(array_filter(array_map('intval', $groupIds))));
+        $requestedGroupIds = array_values(array_unique(array_filter(array_map('intval', $groupIds), function (int $groupId): bool {
+            return $groupId > 0;
+        })));
 
-        $allGroups = $this->lldapService->getGroups();
+        $assignableGroups = $this->filterAssignableGroups($this->lldapService->getGroups());
+        $assignableGroupIds = array_map(function (array $group): int {
+            return (int)($group['id'] ?? 0);
+        }, $assignableGroups);
+
+        $groupIds = array_values(array_filter($requestedGroupIds, function (int $groupId) use ($assignableGroupIds): bool {
+            return in_array($groupId, $assignableGroupIds, true);
+        }));
+
+        $blockedGroupIds = array_values(array_diff($requestedGroupIds, $groupIds));
+        if (!empty($blockedGroupIds)) {
+            $this->logger->warning($this->brandName() . ': blocked non-assignable approval groups', [
+                'user' => $userId,
+                'blocked_groups' => implode(',', array_map('strval', $blockedGroupIds)),
+            ]);
+        }
+
         $groupNames = [];
 
-        foreach ($allGroups as $group) {
+        foreach ($assignableGroups as $group) {
             $gid = (int)($group["id"] ?? 0);
             if (in_array($gid, $groupIds, true)) {
                 $groupNames[] = (string)($group["displayName"] ?? $gid);

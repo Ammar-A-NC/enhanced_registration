@@ -250,14 +250,15 @@ class LldapService {
 
     public function approveUser(string $userId, array $targetGroups): void {
         $pendingGroupId = $this->requiredGroupId('lldap_pending_group_id', 'Pending-Gruppe');
-        $this->removeUserFromGroup($userId, $pendingGroupId);
+        $targetGroups = array_values(array_unique(array_map('intval', $targetGroups)));
 
         foreach ($targetGroups as $groupId) {
-            $groupId = (int)$groupId;
             if ($groupId > 0 && $groupId !== $pendingGroupId) {
                 $this->addUserToGroup($userId, $groupId);
             }
         }
+
+        $this->removeUserFromGroup($userId, $pendingGroupId);
     }
 
     public function blacklistUser(string $userId): void {

@@ -34,7 +34,7 @@
     <div id="rule-length" data-text="Mindestens <?php p($_['password_min_length'] ?? '12'); ?> Zeichen"></div>
 
     <?php if (($_['password_require_uppercase'] ?? '1') === '1'): ?>
-        <div id="rule-upper" data-text="Mindestens ein Grossbuchstabe"></div>
+        <div id="rule-upper" data-text="Mindestens ein Großbuchstabe"></div>
     <?php endif; ?>
 
     <?php if (($_['password_require_lowercase'] ?? '1') === '1'): ?>
@@ -49,7 +49,7 @@
         <div id="rule-special" data-text="Mindestens ein Sonderzeichen"></div>
     <?php endif; ?>
 
-    <div id="rule-match" data-text="Passwoerter stimmen ueberein"></div>
+    <div id="rule-match" data-text="Passwörter stimmen überein"></div>
 </div>
 
         <p>
