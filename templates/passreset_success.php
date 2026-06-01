@@ -2,6 +2,7 @@
 <?php
 style('core', 'guest');
 style('enhanced_registration', 'enhanced');
+script('enhanced_registration', 'success-countdown');
 
 $redirectUrl = $_['redirect_url'] ?? '/login';
 $countdown = 10;
@@ -34,7 +35,7 @@ $buttonText = ($redirectUrl === '/login') ? 'Zur Anmeldung' : 'Weiter';
     </div>
 
     <p class="nc-result-muted">
-        Automatische Weiterleitung in <strong><span id="nc-countdown"><?php p((string)$countdown); ?></span></strong> Sekunden.
+        Automatische Weiterleitung in <strong><span id="nc-countdown" data-seconds="<?php p((string)$countdown); ?>" data-redirect-url="<?php p($redirectUrl); ?>"><?php p((string)$countdown); ?></span></strong> Sekunden.
     </p>
 
     <p style="margin-top:20px;">
@@ -42,25 +43,4 @@ $buttonText = ($redirectUrl === '/login') ? 'Zur Anmeldung' : 'Weiter';
     </p>
 </div>
 
-<script>
-(function () {
-    var seconds = <?php p((string)$countdown); ?>;
-    var target = <?php echo json_encode($redirectUrl); ?>;
-    var el = document.getElementById('nc-countdown');
-
-    if (!el) {
-        return;
-    }
-
-    var timer = setInterval(function () {
-        seconds -= 1;
-        el.textContent = seconds;
-
-        if (seconds <= 0) {
-            clearInterval(timer);
-            window.location.href = target;
-        }
-    }, 1000);
-})();
-</script>
 <?php include __DIR__ . '/_i18n_end.php'; ?>

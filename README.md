@@ -16,7 +16,7 @@ Version 0.2.3 is a security-polish release. It prevents approval without at leas
 
 Version 0.2.3 is currently in development.
 
-Planned and in-progress work includes blocking approval when no assignable target group is selected, improving security documentation, clarifying Direct LDAP as the recommended password writer, documenting the legacy bridge as fallback only, adding optional local/LAN registration restrictions, improving English UI text, replacing hardcoded URLs where possible, and removing inline JavaScript from success templates.
+Planned and in-progress work includes blocking approval when no assignable target group is selected, improving security documentation, clarifying Direct LDAP as the recommended password writer, documenting the legacy bridge as fallback only, adding optional local/LAN registration restrictions, improving English UI text, replacing hardcoded URLs where possible, and removing inline JavaScript from success templates. The success countdown is now handled by the bundled `success-countdown.js` asset.
 
 ## v0.2.2 notes
 
@@ -139,6 +139,10 @@ The app supports:
 - English
 
 In auto mode, the browser language is used. Unsupported languages fall back to English.
+
+## CSP notes
+
+Success pages use the bundled `success-countdown.js` asset instead of inline JavaScript. This keeps the templates friendlier to stricter Content Security Policy settings.
 
 ## Access modes
 

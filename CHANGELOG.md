@@ -12,6 +12,8 @@ Security and release-polish development release.
 
 - Add optional public/local-only/disabled access modes for registration and password reset.
 
+- Remove inline JavaScript from success templates and use the bundled countdown script.
+
 ## 0.2.2
 
 Hardening and polish release.
