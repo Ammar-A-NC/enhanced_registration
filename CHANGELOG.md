@@ -10,6 +10,20 @@ Security and release-polish development release.
 - Prepare documentation cleanup for README, SECURITY notes, and release hygiene.
 - Keep the AGPL license text unchanged and document licensing clearly in README instead.
 
+## 0.2.2
+
+Hardening and polish release.
+
+- Bump app metadata and documentation to 0.2.2.
+- Harden approval group assignment with server-side filtering.
+- Add target groups before removing users from the pending group during approval.
+- Keep users in the pending group more safely if target-group assignment fails.
+- Improve login-link JavaScript by using Nextcloud URL generation.
+- Correct password-rule wording for uppercase letters and password confirmation.
+- Add GitHub Actions CI workflow.
+- Add local smoke-check script.
+- Update README release notes.
+
 ## 0.2.1
 
 Hardening hotfix.

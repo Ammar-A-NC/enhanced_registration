@@ -4,54 +4,110 @@
 
 Please report security issues privately instead of opening a public issue.
 
-If this repository does not yet have a dedicated private security contact configured, open a minimal public issue asking for a private contact method. Do not include technical details, exploit steps, credentials, logs, or other sensitive information in the public issue.
+If no dedicated security contact is configured for this repository yet, open a minimal issue asking for a private contact method without disclosing technical details.
 
-## Supported status
+Do not include exploit details, credentials, tokens, server URLs, logs with secrets, or private configuration values in public issues.
 
-Enhanced Registration is currently distributed as a GitHub/custom Nextcloud app. It is not signed for the Nextcloud App Store.
+## Maintenance status
 
-| Version | Status |
-| --- | --- |
-| 0.2.x | Best-effort maintenance |
-| older than 0.2.x | Not recommended |
+This project is provided as open source and maintained on a best-effort basis in the maintainer's spare time. The maintainer does not commit to continued development, support, maintenance, or security fixes at any particular time.
 
-This project is maintained on a best-effort basis. Response times, fix timelines, and long-term support are not guaranteed.
+Everyone is free to fork the project, adapt it to their own needs, submit pull requests, or continue development independently within the terms of the license.
+
+## Response expectations
+
+Response times and fix timelines are not guaranteed. Critical security reports will be prioritized where possible, but some issues may take time to investigate or resolve.
+
+If you use this app in production, assess the risk for your own environment and apply temporary mitigations where appropriate.
 
 ## Scope
 
-This app handles sensitive account-management flows:
+Enhanced Registration handles:
 
-- public registration
-- email verification
-- pending-user approval
-- LLDAP user creation and group assignment
-- password reset
-- Direct LDAP password changes
-- optional legacy bridge fallback
-- admin configuration values
+- public registration requests
+- email verification codes
+- pending admin approval
+- LLDAP user creation
+- LLDAP group assignment
+- password reset codes and tokens
+- direct LDAP password changes
+- optional legacy password bridge calls
+- audit logging
+- administrative configuration
 
-Treat LLDAP admin credentials, bridge secrets, mail configuration, audit logs, and server backups as sensitive.
+Treat the following configuration values as sensitive:
+
+- LLDAP admin credentials
+- LDAP bind DN and password
+- password writer configuration
+- legacy bridge secrets
+- mail configuration
+- generated registration and password-reset tokens
+- audit logs that may contain user identifiers or operational details
+
+## Recommended password writer mode
+
+The recommended mode is the Direct LDAP password writer.
+
+The Direct LDAP writer connects to the LLDAP LDAP endpoint and uses the LDAP password modify extended operation. This is the preferred path for normal deployments.
+
+The legacy password bridge is still included only as a fallback for older or special deployments. If used, it must be treated as a sensitive internal service.
+
+## Pending, blacklist, and login restrictions
+
+Enhanced Registration creates users in LLDAP before final approval. Production deployments must ensure that pending users cannot log in to Nextcloud.
+
+Configure the Nextcloud LDAP login filter so that only approved groups can authenticate.
+
+Pending and blacklisted users must not be login-capable.
+
+Recommended rule:
+
+- the pending group is not allowed to log in
+- the blacklist group is not allowed to log in
+- only explicitly approved target groups are allowed to log in
+
+The app-side pending workflow is not a replacement for a correct Nextcloud LDAP login filter.
+
+## Legacy password bridge recommendations
+
+The legacy bridge is optional and should only be used when Direct LDAP password writing is not possible.
+
+If the bridge is enabled:
+
+- keep it on a trusted internal network
+- do not expose it directly to the public internet
+- bind it to localhost or a private interface where possible
+- use HTTPS or another protected transport if it crosses hosts
+- use a strong shared secret
+- rotate the secret if it may have leaked
+- firewall the endpoint to trusted systems only
+- monitor bridge logs for failed or unexpected requests
 
 ## Production recommendations
 
-For production-like deployments:
-
-- Use HTTPS for public Nextcloud access.
-- Configure the Nextcloud LDAP login filter so pending and blacklisted users cannot log in.
-- Allow login only for approved target groups.
-- Use the Direct LDAP password writer where possible.
-- Keep the legacy bridge disabled unless it is explicitly needed.
-- If the bridge is used, bind it only to a trusted internal interface and protect it with a strong shared secret.
-- Enable rate limits.
-- Use email-domain allow/deny rules where appropriate.
+- Use HTTPS for all public Nextcloud access.
+- Keep Nextcloud, PHP, LLDAP, the PHP LDAP extension, and this app updated.
+- Use Direct LDAP password writer where possible.
+- Restrict LLDAP admin credentials to the minimum required scope where possible.
+- Store sensitive values only in trusted server-side configuration.
 - Review audit logs regularly.
-- Keep Nextcloud, PHP, LLDAP, the LDAP PHP extension, and this app updated.
-- Test all registration, approval, rejection, and password-reset flows in staging before production use.
+- Test upgrades in a staging instance before production deployment.
+- Keep reliable backups of Nextcloud, its database, and LLDAP data.
+- Verify mail delivery before relying on registration or password-reset flows.
+- Configure rate limits appropriately for your environment.
+- Configure domain allow/deny lists if registration should be limited to specific email domains.
 
-## Signing status
+## Pre-release and signing status
 
-This app does not currently include an `appinfo/signature.json` file and is not App-Store-signed. Administrators should treat it as a custom app and review the code before installation.
+Enhanced Registration is currently distributed as a GitHub custom app release. It is not yet packaged or signed for the Nextcloud App Store.
 
-## License
+Administrators should treat it as a custom app, review the code, verify the source, and test it in a staging environment before production use.
 
-Enhanced Registration is distributed under the GNU Affero General Public License v3.0 or later. See `LICENSE` for the full license text.
+Unsigned custom apps may trigger warnings in Nextcloud. This does not automatically mean the app is unsafe, but it means administrators are responsible for reviewing and trusting the deployed code.
+
+## License and forks
+
+This project is licensed under AGPL-3.0-or-later.
+
+Forks, private modifications, and continued independent development are allowed within the terms of the license.

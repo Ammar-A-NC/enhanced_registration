@@ -12,6 +12,12 @@ It is not a replacement for every use case covered by the official Registration 
 
 Version 0.2.3 is a security-polish release. It prevents approval without at least one assignable target group, keeps affected users in the pending group, adds a clear admin error message for that case, and cleans up release/security documentation.
 
+## v0.2.3 development notes
+
+Version 0.2.3 is currently in development.
+
+Planned and in-progress work includes blocking approval when no assignable target group is selected, improving security documentation, clarifying Direct LDAP as the recommended password writer, documenting the legacy bridge as fallback only, adding optional local/LAN registration restrictions, improving English UI text, replacing hardcoded URLs where possible, and removing inline JavaScript from success templates.
+
 ## v0.2.2 notes
 
 Version 0.2.2 hardens approval group assignment server-side, keeps users in the pending group until target groups were assigned successfully, adds the custom LLDAP password-reset flow, improves the login/register/reset links, adds basic CI and smoke checks, and updates release metadata.
@@ -137,11 +143,26 @@ In auto mode, the browser language is used. Unsupported languages fall back to E
 ## Security notes
 
 - Do not allow pending users to log in through the Nextcloud LDAP login filter.
+- Do not allow blacklisted users to log in through the Nextcloud LDAP login filter.
 - Use Direct LDAP password writer where possible.
-- If using the legacy bridge, do not expose it publicly without additional protection.
-- Use a strong bridge secret.
-- Keep LLDAP admin credentials restricted.
+- Treat LLDAP admin credentials, LDAP bind credentials, bridge secrets, reset tokens, and audit logs as sensitive.
+- If using the legacy bridge, keep it internal and do not expose it publicly without additional protection.
+- Use a strong bridge secret if bridge fallback is enabled.
 - Review audit logs regularly.
+- Test upgrades in a staging instance before production use.
+- Keep reliable backups of Nextcloud, its database, and LLDAP data.
+
+## Production recommendations
+
+For production-like deployments:
+
+- Configure the Nextcloud LDAP login filter so that only approved groups can authenticate.
+- Keep pending and blacklisted groups outside the login-capable LDAP filter.
+- Prefer Direct LDAP password writer over the legacy bridge.
+- Keep registration and password reset rate limits enabled.
+- Use domain allow/deny lists if public registration should be limited.
+- Verify mail delivery before enabling registration for users.
+- Review audit logs after approval, rejection, password reset, and LLDAP admin actions.
 
 ## Status
 
