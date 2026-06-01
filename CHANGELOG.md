@@ -2,19 +2,16 @@
 
 ## 0.2.3
 
-Security and release-polish development release.
+Security and polish release.
 
-- Require at least one assignable approval group before approving a pending user.
-- Keep users in the pending group if approval is attempted without a valid target group.
-- Add an admin error message for missing approval target groups.
-- Prepare documentation cleanup for README, SECURITY notes, and release hygiene.
-- Keep the AGPL license text unchanged and document licensing clearly in README instead.
-
-- Add optional public/local-only/disabled access modes for registration and password reset.
-
+- Block approval when no assignable target group is selected.
+- Keep users in the pending group if no valid approval target group is selected.
+- Add optional public, local-only, and disabled access modes for registration and password reset.
 - Remove inline JavaScript from success templates and use the bundled countdown script.
-
 - Replace hardcoded public `/index.php/...` app URLs with generated route URLs.
+- Improve English UI translations for public pages, password reset, and admin areas.
+- Improve security documentation for Direct LDAP, legacy bridge fallback, pending users, and custom-app signing.
+- Clarify that the standard AGPL license text is intentionally left unchanged.
 
 ## 0.2.2
 

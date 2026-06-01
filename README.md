@@ -1,8 +1,9 @@
 # Enhanced Registration
 
-> **Current stable release:** `v0.2.2`
-> **Current development branch:** `v0.2.3`
-> `v0.2.3` focuses on security polish, release hygiene, documentation cleanup, and safer approval handling.
+> **Current stable release:** `v0.2.3`
+> **Previous stable release:** `v0.2.2`
+>
+> `v0.2.3` adds safer approval handling, optional local/LAN access restrictions, CSP-friendly success pages, generated route URLs, improved English UI translations, and security documentation cleanup.
 
 Enhanced Registration is a community Nextcloud app for self-hosted installations that use LLDAP as their identity backend and need an approval-based registration and password reset flow.
 
@@ -10,13 +11,17 @@ It is not a replacement for every use case covered by the official Registration 
 
 ## v0.2.3 notes
 
-Version 0.2.3 is a security-polish release. It prevents approval without at least one assignable target group, keeps affected users in the pending group, adds a clear admin error message for that case, and cleans up release/security documentation.
+Version 0.2.3 is a security and polish release.
 
-## v0.2.3 development notes
+Highlights:
 
-Version 0.2.3 is currently in development.
-
-Planned and in-progress work includes blocking approval when no assignable target group is selected, improving security documentation, clarifying Direct LDAP as the recommended password writer, documenting the legacy bridge as fallback only, adding optional local/LAN registration restrictions, improving English UI text, replacing hardcoded URLs with generated Nextcloud route URLs where possible, and removing inline JavaScript from success templates. The success countdown is now handled by the bundled `success-countdown.js` asset.
+- Approval is blocked when no assignable target group is selected.
+- Users remain pending when approval cannot safely assign a valid target group.
+- Registration and password reset can be configured as public, local/LAN-only, or disabled.
+- Success pages no longer use inline JavaScript; the countdown is handled by the bundled `success-countdown.js` asset.
+- Public app URLs and admin form actions use generated Nextcloud route URLs instead of hardcoded `/index.php/...` paths.
+- English UI translations are improved for public pages, password reset, and admin areas.
+- Security documentation now clarifies Direct LDAP as the recommended password writer and the legacy bridge as fallback only.
 
 ## v0.2.2 notes
 
