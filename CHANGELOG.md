@@ -10,6 +10,8 @@ Security and release-polish development release.
 - Prepare documentation cleanup for README, SECURITY notes, and release hygiene.
 - Keep the AGPL license text unchanged and document licensing clearly in README instead.
 
+- Add optional public/local-only/disabled access modes for registration and password reset.
+
 ## 0.2.2
 
 Hardening and polish release.

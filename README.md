@@ -140,6 +140,18 @@ The app supports:
 
 In auto mode, the browser language is used. Unsupported languages fall back to English.
 
+## Access modes
+
+Registration and the custom password-reset flow can be configured independently:
+
+- `public`: available from all networks
+- `local_only`: only available from configured CIDR networks
+- `disabled`: flow is blocked and no new registration or password-reset action is started
+
+The default for both flows remains `public`. For password reset, `public` is usually recommended unless the deployment intentionally only supports local/LAN users.
+
+When using `local_only` behind a reverse proxy, make sure Nextcloud's trusted proxy configuration is correct so the app sees the real client IP instead of only the proxy IP.
+
 ## Security notes
 
 - Do not allow pending users to log in through the Nextcloud LDAP login filter.

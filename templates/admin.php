@@ -123,6 +123,22 @@ $messageTypes = [
     'audit_settings_saved' => 'success',
 ];
 
+
+$accessModeOptions = [
+    'public' => 'Öffentlich',
+    'local_only' => 'Nur lokale/LAN-Netzwerke',
+    'disabled' => 'Deaktiviert',
+];
+$registrationAccessMode = (string)($settings['registration_access_mode'] ?? 'public');
+if (!isset($accessModeOptions[$registrationAccessMode])) {
+    $registrationAccessMode = 'public';
+}
+$passwordResetAccessMode = (string)($settings['password_reset_access_mode'] ?? 'public');
+if (!isset($accessModeOptions[$passwordResetAccessMode])) {
+    $passwordResetAccessMode = 'public';
+}
+$defaultAccessNetworks = '127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16,fc00::/7,fe80::/10';
+
 $defaultApprovalGroupIds = array_values(array_filter(array_map('trim', explode(',', (string)($settings['default_approval_group_ids'] ?? '')))));
 
 $protectedUserIds = array_filter(array_map('trim', explode(',', (string)($settings['protected_user_ids'] ?? 'admin'))));
@@ -623,6 +639,36 @@ if (!is_array($auditEvents)) {
                     <label>Gesperrte E-Mail-Domains</label>
                     <input type="text" name="denied_email_domains" value="<?php p($settings['denied_email_domains'] ?? ''); ?>" placeholder="tempmail.com,spam.test">
                     <p class="nc-muted">Kommagetrennt. Gesperrte Domains haben immer Vorrang vor erlaubten Domains.</p>
+
+                    <h4 style="margin-top:22px;">Zugriff</h4>
+
+                    <label>Registrierung</label>
+                    <select name="registration_access_mode">
+                        <?php foreach ($accessModeOptions as $value => $label): ?>
+                            <option value="<?php p($value); ?>" <?php if ($registrationAccessMode === $value) { echo 'selected'; } ?>><?php p($label); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="nc-muted">
+                        Öffentlich erlaubt Registrierungen aus dem Internet. Lokal/LAN erlaubt nur Clients aus den unten konfigurierten Netzwerken. Deaktiviert blendet die Registrierung aus und blockiert neue Registrierungsaktionen.
+                    </p>
+
+                    <label>Erlaubte Netzwerke für Registrierung</label>
+                    <textarea name="registration_allowed_networks" placeholder="127.0.0.1/32, ::1/128, 192.168.0.0/16"><?php p($settings['registration_allowed_networks'] ?? $defaultAccessNetworks); ?></textarea>
+                    <p class="nc-muted">CIDR-Liste, getrennt durch Komma, Leerzeichen oder neue Zeilen. Wird nur bei „Nur lokale/LAN-Netzwerke“ verwendet.</p>
+
+                    <label>Passwortreset</label>
+                    <select name="password_reset_access_mode">
+                        <?php foreach ($accessModeOptions as $value => $label): ?>
+                            <option value="<?php p($value); ?>" <?php if ($passwordResetAccessMode === $value) { echo 'selected'; } ?>><?php p($label); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="nc-muted">
+                        Standard ist öffentlich, damit Benutzer ihr Passwort auch außerhalb des LAN zurücksetzen können. Optional kann der Flow auf lokale/LAN-Netzwerke begrenzt oder deaktiviert werden.
+                    </p>
+
+                    <label>Erlaubte Netzwerke für Passwortreset</label>
+                    <textarea name="password_reset_allowed_networks" placeholder="127.0.0.1/32, ::1/128, 192.168.0.0/16"><?php p($settings['password_reset_allowed_networks'] ?? $defaultAccessNetworks); ?></textarea>
+                    <p class="nc-muted">CIDR-Liste, getrennt durch Komma, Leerzeichen oder neue Zeilen. Wird nur bei „Nur lokale/LAN-Netzwerke“ verwendet.</p>
 
                     <h4 style="margin-top:22px;">Rate-Limit</h4>
 

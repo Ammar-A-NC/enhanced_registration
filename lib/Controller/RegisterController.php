@@ -102,6 +102,151 @@ class RegisterController extends Controller {
         return $fallback;
     }
 
+    private function defaultAccessNetworks(): string {
+        return '127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16,fc00::/7,fe80::/10';
+    }
+
+    private function normalizedAccessMode(string $key, string $default): string {
+        $mode = trim($this->config->getAppValue('enhanced_registration', $key, $default));
+
+        if (!in_array($mode, ['public', 'local_only', 'disabled'], true)) {
+            return $default;
+        }
+
+        return $mode;
+    }
+
+    private function parseNetworkList(string $value): array {
+        $items = preg_split('/[\s,;]+/', trim($value));
+        $items = array_map('trim', $items ?: []);
+        $items = array_filter($items, static fn(string $item): bool => $item !== '');
+
+        return array_values(array_unique($items));
+    }
+
+    private function clientIpAddress(): string {
+        $ip = trim((string)$this->request->getRemoteAddress());
+
+        if ($ip === '') {
+            $ip = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
+        }
+
+        if (str_starts_with($ip, '[') && str_contains($ip, ']')) {
+            $ip = trim(substr($ip, 1, strpos($ip, ']') - 1));
+        }
+
+        if (substr_count($ip, ':') === 1 && str_contains($ip, '.')) {
+            $ip = explode(':', $ip, 2)[0];
+        }
+
+        return $ip;
+    }
+
+    private function ipMatchesCidr(string $ip, string $cidr): bool {
+        $ipBin = @inet_pton($ip);
+
+        if ($ipBin === false) {
+            return false;
+        }
+
+        $cidr = trim($cidr);
+        if ($cidr === '') {
+            return false;
+        }
+
+        if (!str_contains($cidr, '/')) {
+            $cidr .= strlen($ipBin) === 4 ? '/32' : '/128';
+        }
+
+        [$network, $prefixRaw] = array_pad(explode('/', $cidr, 2), 2, '');
+        $networkBin = @inet_pton(trim($network));
+
+        if ($networkBin === false || strlen($networkBin) !== strlen($ipBin)) {
+            return false;
+        }
+
+        if (!ctype_digit($prefixRaw)) {
+            return false;
+        }
+
+        $prefix = (int)$prefixRaw;
+        $maxBits = strlen($ipBin) * 8;
+
+        if ($prefix < 0 || $prefix > $maxBits) {
+            return false;
+        }
+
+        $fullBytes = intdiv($prefix, 8);
+        $remainingBits = $prefix % 8;
+
+        if ($fullBytes > 0 && substr($ipBin, 0, $fullBytes) !== substr($networkBin, 0, $fullBytes)) {
+            return false;
+        }
+
+        if ($remainingBits === 0) {
+            return true;
+        }
+
+        $mask = (0xff << (8 - $remainingBits)) & 0xff;
+
+        return (ord($ipBin[$fullBytes]) & $mask) === (ord($networkBin[$fullBytes]) & $mask);
+    }
+
+    private function clientIpInAllowedNetworks(string $networks): bool {
+        $ip = $this->clientIpAddress();
+
+        if ($ip === '') {
+            return false;
+        }
+
+        foreach ($this->parseNetworkList($networks) as $cidr) {
+            if ($this->ipMatchesCidr($ip, $cidr)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isAccessModeAllowed(string $modeKey, string $networkKey, string $defaultMode): bool {
+        $mode = $this->normalizedAccessMode($modeKey, $defaultMode);
+
+        if ($mode === 'public') {
+            return true;
+        }
+
+        if ($mode === 'disabled') {
+            return false;
+        }
+
+        $networks = $this->config->getAppValue('enhanced_registration', $networkKey, $this->defaultAccessNetworks());
+        if (trim($networks) === '') {
+            $networks = $this->defaultAccessNetworks();
+        }
+
+        return $this->clientIpInAllowedNetworks($networks);
+    }
+
+    private function isRegistrationAccessAllowed(): bool {
+        return $this->isAccessModeAllowed('registration_access_mode', 'registration_allowed_networks', 'public');
+    }
+
+    private function isPasswordResetAccessAllowed(): bool {
+        return $this->isAccessModeAllowed('password_reset_access_mode', 'password_reset_allowed_networks', 'public');
+    }
+
+    private function registrationAccessDeniedResponse(): TemplateResponse {
+        return $this->noStoreTemplate('error', [
+            'message' => 'Die Registrierung ist aktuell nicht von diesem Netzwerk aus verfügbar.'
+        ], 'guest');
+    }
+
+    private function passwordResetAccessDeniedResponse(): TemplateResponse {
+        return $this->noStoreTemplate('error', [
+            'message' => 'Der Passwortreset ist aktuell nicht von diesem Netzwerk aus verfügbar.'
+        ], 'guest');
+    }
+
     private function brandName(): string {
         return trim($this->config->getAppValue('enhanced_registration', 'brand_name', 'Enhanced Registration')) ?: 'Enhanced Registration';
     }
@@ -555,6 +700,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function index(): TemplateResponse {
+        if (!$this->isRegistrationAccessAllowed()) {
+            return $this->registrationAccessDeniedResponse();
+        }
+
         return $this->noStoreTemplate('register');
     }
 
@@ -562,6 +711,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function submitEmail(): TemplateResponse|RedirectResponse {
+        if (!$this->isRegistrationAccessAllowed()) {
+            return $this->registrationAccessDeniedResponse();
+        }
+
         $email = trim((string)$this->request->getParam("email"));
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -630,6 +783,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function checkMail(): TemplateResponse {
+        if (!$this->isRegistrationAccessAllowed()) {
+            return $this->registrationAccessDeniedResponse();
+        }
+
         return new TemplateResponse('enhanced_registration', 'checkmail', [
             'email' => (string)$this->request->getParam('email')
         ], 'guest');
@@ -638,7 +795,11 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[PublicPage]
     #[NoAdminRequired]
     #[NoCSRFRequired]
-    public function submitCode(): RedirectResponse {
+    public function submitCode(): TemplateResponse|RedirectResponse {
+        if (!$this->isRegistrationAccessAllowed()) {
+            return $this->registrationAccessDeniedResponse();
+        }
+
         $code = trim((string)$this->request->getParam('code'));
         return new RedirectResponse('/index.php/apps/enhanced_registration/verify?code=' . urlencode($code));
     }
@@ -648,6 +809,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function resendCode(): TemplateResponse {
+        if (!$this->isRegistrationAccessAllowed()) {
+            return $this->registrationAccessDeniedResponse();
+        }
+
         $email = trim((string)$this->request->getParam('email', ''));
         $genericMessage = 'Falls eine aktive Registrierung für diese E-Mail-Adresse existiert, wurde ein neuer Code gesendet.';
 
@@ -715,6 +880,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function verify(): TemplateResponse {
+        if (!$this->isRegistrationAccessAllowed()) {
+            return $this->registrationAccessDeniedResponse();
+        }
+
         $code = trim((string)$this->request->getParam('code'));
         $rateLimitMessage = $this->checkRateLimitAndRecord('registration_verify', $this->clientRateLimitIdentity());
 
@@ -742,6 +911,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function submitDetails(): TemplateResponse {
+        if (!$this->isRegistrationAccessAllowed()) {
+            return $this->registrationAccessDeniedResponse();
+        }
+
         $token = trim((string)$this->request->getParam('token'));
         $rateLimitMessage = $this->checkRateLimitAndRecord('registration_details', $this->clientRateLimitIdentity());
 
@@ -1022,6 +1195,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             "store_user_email_in_ldap",
             "allowed_email_domains",
             "denied_email_domains",
+            "registration_access_mode",
+            "registration_allowed_networks",
+            "password_reset_access_mode",
+            "password_reset_allowed_networks",
             "rate_limit_enabled",
             "rate_limit_cooldown_seconds",
             "rate_limit_window_minutes",
@@ -1442,6 +1619,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function passreset(): TemplateResponse {
+        if (!$this->isPasswordResetAccessAllowed()) {
+            return $this->passwordResetAccessDeniedResponse();
+        }
+
         return $this->noStoreTemplate('passreset');
     }
 
@@ -1449,6 +1630,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function submitpassreset(): TemplateResponse {
+        if (!$this->isPasswordResetAccessAllowed()) {
+            return $this->passwordResetAccessDeniedResponse();
+        }
+
         $email = trim((string)$this->request->getParam('email'));
         $genericMessage = 'Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Code gesendet.';
 
@@ -1498,6 +1683,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function resendpassreset(): TemplateResponse {
+        if (!$this->isPasswordResetAccessAllowed()) {
+            return $this->passwordResetAccessDeniedResponse();
+        }
+
         $email = trim((string)$this->request->getParam('email'));
         $genericMessage = 'Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein neuer Code gesendet.';
 
@@ -1545,6 +1734,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function verifypassreset(): TemplateResponse {
+        if (!$this->isPasswordResetAccessAllowed()) {
+            return $this->passwordResetAccessDeniedResponse();
+        }
+
         $token = trim((string)$this->request->getParam('token'));
         $code = preg_replace('/\D+/', '', (string)$this->request->getParam('code'));
 
@@ -1585,6 +1778,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function setnewpassword(): TemplateResponse {
+        if (!$this->isPasswordResetAccessAllowed()) {
+            return $this->passwordResetAccessDeniedResponse();
+        }
+
         $token = trim((string)$this->request->getParam('token'));
         $rateLimitMessage = $this->checkRateLimitAndRecord('password_reset_set', $this->clientRateLimitIdentity());
 
