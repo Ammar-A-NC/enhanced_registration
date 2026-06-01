@@ -88,6 +88,7 @@ $messages = [
     'user_delete_failed' => 'Benutzer konnte nicht gelöscht werden. Bitte Logs prüfen.',
     'user_delete_blocked' => 'Geschützter Benutzer wurde nicht gelöscht.',
     'approved' => 'Registrierungsantrag freigegeben.',
+    'approval_group_required' => 'Bitte wählen Sie mindestens eine freigegebene Zielgruppe aus. Der Benutzer bleibt in Pending.',
     'blacklisted' => 'Registrierungsantrag abgelehnt und zur Blacklist hinzugefügt.',
     'mail_template_invalid' => 'Mail-Vorlage nicht gespeichert: Ein Pflicht-Platzhalter fehlt oder wurde verändert.',
     'lldap_test_ok' => 'LLDAP-Verbindung erfolgreich getestet.',
@@ -108,6 +109,7 @@ $messageTypes = [
     'user_delete_failed' => 'error',
     'user_delete_blocked' => 'error',
     'approved' => 'success',
+    'approval_group_required' => 'error',
     'blacklisted' => 'warning',
     'mail_template_invalid' => 'error',
     'lldap_test_ok' => 'success',
@@ -291,7 +293,7 @@ if (in_array($msg, ['settings_saved', 'mail_template_invalid', 'lldap_test_ok', 
     $initialAdminPage = 'audit';
 } elseif (in_array($msg, ['user_groups_saved', 'user_deleted', 'user_delete_failed', 'user_delete_blocked'], true)) {
     $initialAdminPage = 'users';
-} elseif (in_array($msg, ['approved', 'blacklisted'], true)) {
+} elseif (in_array($msg, ['approved', 'approval_group_required', 'blacklisted'], true)) {
     $initialAdminPage = 'pending';
 }
 

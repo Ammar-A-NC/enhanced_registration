@@ -1,11 +1,16 @@
 # Enhanced Registration
 
-> **Current recommended release:** `v0.2.2`
-> `v0.2.2` hardens approval group assignment, adds the custom LLDAP password-reset flow, improves login/register/reset links, and adds basic CI/smoke checks.
+> **Current stable release:** `v0.2.2`
+> **Current development branch:** `v0.2.3`
+> `v0.2.3` focuses on security polish, release hygiene, documentation cleanup, and safer approval handling.
 
 Enhanced Registration is a community Nextcloud app for self-hosted installations that use LLDAP as their identity backend and need an approval-based registration and password reset flow.
 
 It is not a replacement for every use case covered by the official Registration app. It targets a narrower setup: Nextcloud + LLDAP. Since v0.2.0, passwords are changed directly through LDAP; the bridge is only a legacy fallback.
+
+## v0.2.3 notes
+
+Version 0.2.3 is a security-polish release. It prevents approval without at least one assignable target group, keeps affected users in the pending group, adds a clear admin error message for that case, and cleans up release/security documentation.
 
 ## v0.2.2 notes
 
@@ -144,8 +149,6 @@ This app is an early community release. Test carefully before using it in produc
 
 ## License
 
-AGPL-3.0-or-later.
+Enhanced Registration is licensed under the GNU Affero General Public License v3.0 or later.
 
-## Disclaimer
-
-This project is not affiliated with or endorsed by Nextcloud GmbH or the official Registration app.
+The `LICENSE` file contains the full standard AGPL-3.0 license text. The final “How to Apply These Terms to Your New Programs” section is part of the standard license text and is intentionally left unchanged.

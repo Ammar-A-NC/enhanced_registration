@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.3
+
+Security and release-polish development release.
+
+- Require at least one assignable approval group before approving a pending user.
+- Keep users in the pending group if approval is attempted without a valid target group.
+- Add an admin error message for missing approval target groups.
+- Prepare documentation cleanup for README, SECURITY notes, and release hygiene.
+- Keep the AGPL license text unchanged and document licensing clearly in README instead.
+
 ## 0.2.1
 
 Hardening hotfix.

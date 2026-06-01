@@ -1253,6 +1253,18 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             ]);
         }
 
+        if (empty($groupIds)) {
+            $this->logger->warning($this->brandName() . ': approval blocked because no assignable target group was selected', [
+                'user' => $userId,
+            ]);
+
+            $this->audit('user_approval_blocked_no_group', [
+                'user' => $userId,
+            ]);
+
+            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=approval_group_required");
+        }
+
         $groupNames = [];
 
         foreach ($assignableGroups as $group) {
