@@ -1,4 +1,5 @@
-<?php include __DIR__ . '/_i18n_start.php'; ?>
+<?php
+$urls = $_['urls'] ?? []; include __DIR__ . '/_i18n_start.php'; ?>
 <?php
 style('core', 'guest');
 ?>
@@ -10,7 +11,7 @@ style('core', 'guest');
         Geben Sie zuerst Ihre E-Mail-Adresse ein.
     </p>
 
-    <form method="post" action="/index.php/apps/enhanced_registration/register">
+    <form method="post" action="<?php p($urls['register_submit'] ?? ''); ?>">
         <p>
             <input
                 type="email"

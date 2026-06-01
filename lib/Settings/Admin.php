@@ -7,13 +7,28 @@ namespace OCA\EnhancedRegistration\Settings;
 use OCA\EnhancedRegistration\Service\LldapService;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IConfig;
+use OCP\IURLGenerator;
 use OCP\Settings\ISettings;
 
 class Admin implements ISettings {
     public function __construct(
         private LldapService $lldapService,
-        private IConfig $config
+        private IConfig $config,
+        private IURLGenerator $urlGenerator
     ) {}
+
+    private function routeUrl(string $route, array $params = []): string {
+        return $this->urlGenerator->linkToRoute('enhanced_registration.register.' . $route, $params);
+    }
+
+    private function adminUrls(): array {
+        return [
+            'admin_settings' => $this->routeUrl('saveSettings'),
+            'admin_approve' => $this->routeUrl('approve'),
+            'admin_blacklist' => $this->routeUrl('blacklist'),
+            'admin_delete_user' => $this->routeUrl('deleteUser'),
+        ];
+    }
 
     private function safeLldapData(): array {
         $lldapUrl = trim($this->config->getAppValue('enhanced_registration', 'lldap_url', ''));
@@ -78,6 +93,7 @@ class Admin implements ISettings {
                 'groups' => $lldapData['groups'],
                 'users' => $lldapData['users'],
                     'lldap_load_error' => $lldapData['lldap_load_error'],
+                'urls' => $this->adminUrls(),
                 'settings' => [
                     'lldap_url' => $this->config->getAppValue('enhanced_registration', 'lldap_url', ''),
                     'lldap_admin_user' => $this->config->getAppValue('enhanced_registration', 'lldap_admin_user', ''),

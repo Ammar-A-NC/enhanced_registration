@@ -1,4 +1,5 @@
-<?php include __DIR__ . '/_i18n_start.php'; ?>
+<?php
+$urls = $_['urls'] ?? []; include __DIR__ . '/_i18n_start.php'; ?>
 <?php script('enhanced_registration', 'password-toggle'); ?>
 <?php style('enhanced_registration', 'enhanced'); ?>
 <?php script('enhanced_registration', 'password-strength'); ?>
@@ -10,7 +11,7 @@
         <p class="nc-error"><?= htmlspecialchars($_['message']) ?></p>
     <?php endif; ?>
 
-    <form method="post" action="/index.php/apps/enhanced_registration/passreset/set">
+    <form method="post" action="<?php p($urls['passreset_set'] ?? ''); ?>">
         <input type="hidden" name="token" value="<?= htmlspecialchars($_['token']) ?>">
 
         <p style="display:flex;gap:6px;">

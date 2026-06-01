@@ -1,4 +1,5 @@
-<?php include __DIR__ . '/_i18n_start.php'; ?>
+<?php
+$urls = $_['urls'] ?? []; include __DIR__ . '/_i18n_start.php'; ?>
 <?php style("core","guest"); ?>
 <?php style('enhanced_registration', 'enhanced'); ?>
 <?php script('enhanced_registration', 'password-toggle'); ?>
@@ -11,7 +12,7 @@
         <p class="nc-error"><?php p($_["message"]); ?></p>
     <?php endif; ?>
 
-    <form method="post" action="/index.php/apps/enhanced_registration/details">
+    <form method="post" action="<?php p($urls['details_submit'] ?? ''); ?>">
         <input type="hidden" name="token" value="<?php p($_["token"] ?? ""); ?>">
         <input type="hidden" name="email" value="<?php p($_["email"] ?? ""); ?>">
 

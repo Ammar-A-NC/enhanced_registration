@@ -1,4 +1,5 @@
-<?php include __DIR__ . '/_i18n_start.php'; ?>
+<?php
+$urls = $_['urls'] ?? []; include __DIR__ . '/_i18n_start.php'; ?>
 <?php
 style('core', 'guest');
 $message = $_['message'] ?? 'Ein Fehler ist aufgetreten.';
@@ -12,13 +13,13 @@ $message = $_['message'] ?? 'Ein Fehler ist aufgetreten.';
     </p>
 
     <p style="text-align:center;margin-top:18px;">
-        <a href="/index.php/apps/enhanced_registration/checkmail">
+        <a href="<?php p($urls['checkmail'] ?? '#'); ?>">
             Code erneut eingeben
         </a>
     </p>
 
     <p style="text-align:center;margin-top:10px;">
-        <a href="/index.php/apps/enhanced_registration/register">
+        <a href="<?php p($urls['register'] ?? '#'); ?>">
             Neue E-Mail anfordern
         </a>
     </p>

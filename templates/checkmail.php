@@ -1,4 +1,5 @@
-<?php include __DIR__ . '/_i18n_start.php'; ?>
+<?php
+$urls = $_['urls'] ?? []; include __DIR__ . '/_i18n_start.php'; ?>
 <?php
 style('core', 'guest');
 
@@ -13,7 +14,7 @@ $email = $_['email'] ?? '';
         <strong><?php p($email); ?></strong>
     </p>
 
-    <form method="POST" action="/index.php/apps/enhanced_registration/checkmail">
+    <form method="POST" action="<?php p($urls['checkmail_submit'] ?? ''); ?>">
         <input
             type="text"
             name="code"
@@ -31,7 +32,7 @@ $email = $_['email'] ?? '';
     </form>
 
     <?php if (!empty($email)): ?>
-        <form method="POST" action="/index.php/apps/enhanced_registration/resend-code" style="margin-top:10px;">
+        <form method="POST" action="<?php p($urls['resend_code'] ?? ''); ?>" style="margin-top:10px;">
             <input type="hidden" name="email" value="<?php p($email); ?>">
             <button type="submit" class="button" style="width:100%;">Bestätigungscode erneut senden</button>
         </form>

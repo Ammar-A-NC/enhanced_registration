@@ -1,4 +1,5 @@
-<?php include __DIR__ . '/_i18n_start.php'; ?>
+<?php
+$urls = $_['urls'] ?? []; include __DIR__ . '/_i18n_start.php'; ?>
 <?php
 style('core', 'guest');
 $code = $_['code'] ?? '';
@@ -7,7 +8,7 @@ $code = $_['code'] ?? '';
 <div class="guest-box login-box" style="max-width:360px;margin:auto;">
     <h2 style="text-align:center;">Konto erstellen</h2>
 
-    <form method="post" action="/index.php/apps/enhanced_registration/details">
+    <form method="post" action="<?php p($urls['details_submit'] ?? ''); ?>">
         <input type="hidden" name="code" value="<?php p($code); ?>">
 
         <input type="text" name="username" placeholder="Anmeldename" required autofocus>

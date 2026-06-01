@@ -77,6 +77,7 @@
 
 <?php
 $settings = $_['settings'] ?? [];
+$urls = $_['urls'] ?? [];
 $groups = $_['groups'] ?? [];
 $requestToken = $_['requesttoken'] ?? '';
 
@@ -359,20 +360,20 @@ if (!is_array($auditEvents)) {
         </div>
 
         <div class="nc-test-actions">
-            <form method="POST" action="/index.php/apps/enhanced_registration/admin/settings">
+            <form method="POST" action="<?php p($urls['admin_settings'] ?? ''); ?>">
             <input type="hidden" name="default_approval_group_ids" value="">
                 <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
                 <input type="hidden" name="save_type" value="test_lldap">
                 <button type="submit" class="button">LLDAP testen</button>
             </form>
 
-            <form method="POST" action="/index.php/apps/enhanced_registration/admin/settings">
+            <form method="POST" action="<?php p($urls['admin_settings'] ?? ''); ?>">
                 <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
                 <input type="hidden" name="save_type" value="test_bridge">
                 <button type="submit" class="button">Bridge testen</button>
             </form>
 
-            <form method="POST" action="/index.php/apps/enhanced_registration/admin/settings">
+            <form method="POST" action="<?php p($urls['admin_settings'] ?? ''); ?>">
                 <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
                 <input type="hidden" name="save_type" value="test_mail">
                 <label>
@@ -393,7 +394,7 @@ if (!is_array($auditEvents)) {
         <h3>Einstellungen</h3>
         <p class="nc-muted">Diese Werte werden gespeichert. Geheime Werte werden nicht im Klartext angezeigt.</p>
 
-        <form method="POST" action="/index.php/apps/enhanced_registration/admin/settings">
+        <form method="POST" action="<?php p($urls['admin_settings'] ?? ''); ?>">
                     <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
             <div class="nc-settings-grid">
                 <div class="nc-settings-card">
@@ -759,7 +760,7 @@ if (!is_array($auditEvents)) {
                     <div class="nc-reg-name"><?php p($user['displayName'] ?? ''); ?></div>
                     <div class="nc-reg-mail"><?php p($user['email'] ?? ''); ?></div>
 
-                    <form method="POST" action="/index.php/apps/enhanced_registration/admin/approve">
+                    <form method="POST" action="<?php p($urls['admin_approve'] ?? ''); ?>">
                     <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
                         <input type="hidden" name="userId" value="<?php p($user['id'] ?? ''); ?>">
 
@@ -782,7 +783,7 @@ if (!is_array($auditEvents)) {
                             <button type="submit" class="button nc-btn-approve">✅ Freigeben</button>
                     </form>
 
-                            <form method="POST" action="/index.php/apps/enhanced_registration/admin/blacklist">
+                            <form method="POST" action="<?php p($urls['admin_blacklist'] ?? ''); ?>">
                     <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
                                 <input type="hidden" name="userId" value="<?php p($user['id'] ?? ''); ?>">
                                 <button type="submit" class="button nc-btn-blacklist">⛔ Blacklist</button>
@@ -843,7 +844,7 @@ if (!is_array($auditEvents)) {
                 </summary>
 
                 <div class="nc-user-details">
-                    <form method="POST" action="/index.php/apps/enhanced_registration/admin/settings">
+                    <form method="POST" action="<?php p($urls['admin_settings'] ?? ''); ?>">
                         <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
                         <input type="hidden" name="save_type" value="user_groups">
                         <input type="hidden" name="userId" value="<?php p($user['id'] ?? ''); ?>">
@@ -874,7 +875,7 @@ if (!is_array($auditEvents)) {
 
                     <form
                         method="POST"
-                        action="/index.php/apps/enhanced_registration/admin/users/delete"
+                        action="<?php p($urls['admin_delete_user'] ?? ''); ?>"
                         onsubmit="return confirm('Benutzer wirklich vollständig aus LLDAP löschen? Diese Aktion kann nicht rückgängig gemacht werden.');"
                         style="margin-top:12px;"
                     >
@@ -898,7 +899,7 @@ if (!is_array($auditEvents)) {
 
         <div class="nc-settings-card" style="max-width:720px;margin:14px 0;">
             <h4>Audit-Aufbewahrung</h4>
-            <form method="POST" action="/index.php/apps/enhanced_registration/admin/settings">
+            <form method="POST" action="<?php p($urls['admin_settings'] ?? ''); ?>">
                 <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
                 <input type="hidden" name="save_type" value="audit_settings">
 
@@ -915,7 +916,7 @@ if (!is_array($auditEvents)) {
         </div>
 
         <div class="nc-audit-actions">
-            <form method="POST" action="/index.php/apps/enhanced_registration/admin/settings">
+            <form method="POST" action="<?php p($urls['admin_settings'] ?? ''); ?>">
                 <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
                 <input type="hidden" name="save_type" value="clear_audit">
                 <button type="submit" class="button">Audit-Log leeren</button>

@@ -1,4 +1,5 @@
-<?php include __DIR__ . '/_i18n_start.php'; ?>
+<?php
+$urls = $_['urls'] ?? []; include __DIR__ . '/_i18n_start.php'; ?>
 <div class="guest-box">
     <h2>Passwort zurücksetzen</h2>
 
@@ -6,7 +7,7 @@
         <p><?= htmlspecialchars($_['message']) ?></p>
     <?php endif; ?>
 
-    <form method="post" action="/index.php/apps/enhanced_registration/passreset">
+    <form method="post" action="<?php p($urls['passreset_submit'] ?? ''); ?>">
         <p>
             <input type="email" name="email" placeholder="E-Mail-Adresse" required style="width:100%;padding:12px;">
         </p>

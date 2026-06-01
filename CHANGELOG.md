@@ -14,6 +14,8 @@ Security and release-polish development release.
 
 - Remove inline JavaScript from success templates and use the bundled countdown script.
 
+- Replace hardcoded public `/index.php/...` app URLs with generated route URLs.
+
 ## 0.2.2
 
 Hardening and polish release.

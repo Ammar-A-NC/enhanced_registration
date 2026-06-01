@@ -1,4 +1,5 @@
-<?php include __DIR__ . '/_i18n_start.php'; ?>
+<?php
+$urls = $_['urls'] ?? []; include __DIR__ . '/_i18n_start.php'; ?>
 <?php $email = (string)($_['email'] ?? ''); ?>
 <div class="guest-box">
     <h2>Bestätigungscode eingeben</h2>
@@ -7,7 +8,7 @@
         <p><?= htmlspecialchars($_['message']) ?></p>
     <?php endif; ?>
 
-    <form method="get" action="/index.php/apps/enhanced_registration/passreset/verify">
+    <form method="get" action="<?php p($urls['passreset_verify'] ?? ''); ?>">
         <p>
             <input
                 type="text"
@@ -28,7 +29,7 @@
     </form>
 
     <?php if (!empty($email)): ?>
-        <form method="POST" action="/index.php/apps/enhanced_registration/passreset/resend" style="margin-top:10px;">
+        <form method="POST" action="<?php p($urls['passreset_resend'] ?? ''); ?>" style="margin-top:10px;">
             <input type="hidden" name="email" value="<?php p($email); ?>">
             <button type="submit" class="button" style="width:100%;">Bestätigungscode erneut senden</button>
         </form>

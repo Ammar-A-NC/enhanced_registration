@@ -63,6 +63,10 @@ class RegisterController extends Controller {
             $params['brand_name'] = $this->brandName();
         }
 
+        if (!isset($params['urls'])) {
+            $params['urls'] = $this->templateUrls();
+        }
+
         $params = array_merge($this->passwordPolicyTemplateParams(), $params);
 
         return new TemplateResponse("enhanced_registration", $template, $params, "guest");
@@ -247,6 +251,57 @@ class RegisterController extends Controller {
         ], 'guest');
     }
 
+    private function routeUrl(string $route, array $params = []): string {
+        return $this->urlGenerator->linkToRoute('enhanced_registration.register.' . $route, $params);
+    }
+
+    private function routeUrlAbsolute(string $route, array $params = []): string {
+        return $this->urlGenerator->getAbsoluteURL($this->routeUrl($route, $params));
+    }
+
+    private function adminSettingsUrl(?string $msg = null): string {
+        try {
+            $url = $this->urlGenerator->linkToRoute('settings.AdminSettings.index', [
+                'section' => 'enhanced_registration',
+            ]);
+        } catch (\Throwable $e) {
+            $url = '/settings/admin/enhanced_registration';
+        }
+
+        if ($msg !== null && $msg !== '') {
+            $url .= (str_contains($url, '?') ? '&' : '?') . 'msg=' . urlencode($msg);
+        }
+
+        return $url;
+    }
+
+    private function adminRedirect(string $msg): RedirectResponse {
+        return new RedirectResponse($this->adminSettingsUrl($msg));
+    }
+
+    private function templateUrls(): array {
+        $loginUrl = $this->safeRedirectUrl(
+            $this->config->getAppValue('enhanced_registration', 'login_url', '/login'),
+            '/login'
+        );
+
+        return [
+            'login' => $loginUrl,
+            'register' => $this->routeUrl('index'),
+            'register_submit' => $this->routeUrl('submitEmail'),
+            'checkmail' => $this->routeUrl('checkMail'),
+            'checkmail_submit' => $this->routeUrl('submitCode'),
+            'resend_code' => $this->routeUrl('resendCode'),
+            'verify' => $this->routeUrl('verify'),
+            'details_submit' => $this->routeUrl('submitDetails'),
+            'passreset' => $this->routeUrl('passreset'),
+            'passreset_submit' => $this->routeUrl('submitpassreset'),
+            'passreset_verify' => $this->routeUrl('verifypassreset'),
+            'passreset_set' => $this->routeUrl('setnewpassword'),
+            'passreset_resend' => $this->routeUrl('resendpassreset'),
+        ];
+    }
+
     private function brandName(): string {
         return trim($this->config->getAppValue('enhanced_registration', 'brand_name', 'Enhanced Registration')) ?: 'Enhanced Registration';
     }
@@ -356,7 +411,7 @@ class RegisterController extends Controller {
 
 
     private function sendRegistrationConfirmationMail(string $email, string $manualCode, string $linkToken): void {
-        $link = $this->urlGenerator->getAbsoluteURL("/index.php/apps/enhanced_registration/verify?code=" . urlencode($linkToken));
+        $link = $this->routeUrlAbsolute('verify', ['code' => $linkToken]);
 
         $message = $this->mailer->createMessage();
         $message->setTo([$email]);
@@ -392,9 +447,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
     }
 
     private function sendPasswordResetMail(string $email, string $token, string $code): void {
-        $resetLink = $this->urlGenerator->getAbsoluteURL(
-            "/index.php/apps/enhanced_registration/passreset/verify?token=" . urlencode($token)
-        );
+        $resetLink = $this->routeUrlAbsolute('verifypassreset', ['token' => $token]);
 
         $message = $this->mailer->createMessage();
         $message->setTo([$email]);
@@ -750,7 +803,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         try {
             $registrationTokens = $this->registrationService->createRegistration($email);
         } catch (\Throwable $e) {
-            return new RedirectResponse("/index.php/apps/enhanced_registration/already");
+            return new RedirectResponse($this->routeUrl('already'));
         }
 
         try {
@@ -775,7 +828,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
 
         $this->audit('registration_code_requested', $this->auditEmailContext($email));
 
-        return new RedirectResponse("/index.php/apps/enhanced_registration/checkmail?email=" . urlencode($email));
+        return new RedirectResponse($this->routeUrl('checkMail', ['email' => $email]));
     }
 
 
@@ -787,9 +840,9 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             return $this->registrationAccessDeniedResponse();
         }
 
-        return new TemplateResponse('enhanced_registration', 'checkmail', [
+        return $this->noStoreTemplate('checkmail', [
             'email' => (string)$this->request->getParam('email')
-        ], 'guest');
+        ]);
     }
 
     #[PublicPage]
@@ -801,7 +854,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         }
 
         $code = trim((string)$this->request->getParam('code'));
-        return new RedirectResponse('/index.php/apps/enhanced_registration/verify?code=' . urlencode($code));
+        return new RedirectResponse($this->routeUrl('verify', ['code' => $code]));
     }
 
 
@@ -1083,14 +1136,14 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                 "audit_retention_days" => $retentionDays,
             ]);
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=audit_settings_saved");
+            return $this->adminRedirect('audit_settings_saved');
         }
 
         if ($saveType === "clear_audit") {
             $this->config->setAppValue('enhanced_registration', 'audit_events', '[]');
             $this->audit('audit_log_cleared');
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=audit_cleared");
+            return $this->adminRedirect('audit_cleared');
         }
 
         if ($saveType === "audit_settings") {
@@ -1121,7 +1174,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                 "audit_retention_days" => $retentionDays,
             ]);
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=audit_settings_saved");
+            return $this->adminRedirect('audit_settings_saved');
         }
 
         if ($saveType === "test_lldap") {
@@ -1154,13 +1207,13 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                 ]);
             }
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=user_groups_saved");
+            return $this->adminRedirect('user_groups_saved');
         }
 
         $mailTemplateError = $this->validateMailTemplates();
 
         if ($mailTemplateError !== null) {
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=" . $mailTemplateError);
+            return $this->adminRedirect($mailTemplateError);
         }
 
         $keys = [
@@ -1243,7 +1296,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
 
         $this->audit('settings_saved');
 
-        return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=settings_saved");
+        return $this->adminRedirect('settings_saved');
     }
 
 
@@ -1260,7 +1313,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
 
             $this->audit('test_lldap_ok');
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=lldap_test_ok");
+            return $this->adminRedirect('lldap_test_ok');
         } catch (\Throwable $e) {
             $this->logger->warning($this->brandName() . ': LLDAP test failed', [
                 'error' => $e->getMessage(),
@@ -1268,7 +1321,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
 
             $this->audit('test_lldap_failed');
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=lldap_test_failed");
+            return $this->adminRedirect('lldap_test_failed');
         }
     }
 
@@ -1301,7 +1354,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
 
             $this->audit('test_bridge_ok');
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=bridge_test_ok");
+            return $this->adminRedirect('bridge_test_ok');
         } catch (\Throwable $e) {
             $this->logger->warning($this->brandName() . ': Bridge test failed', [
                 'error' => $e->getMessage(),
@@ -1309,7 +1362,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
 
             $this->audit('test_bridge_failed');
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=bridge_test_failed");
+            return $this->adminRedirect('bridge_test_failed');
         }
     }
 
@@ -1320,7 +1373,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         $email = trim((string)$this->request->getParam('test_email'));
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=test_mail_invalid");
+            return $this->adminRedirect('test_mail_invalid');
         }
 
         try {
@@ -1337,7 +1390,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             $this->mailer->send($message);
             $this->audit('test_mail_ok', $this->auditEmailContext($email));
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=test_mail_ok");
+            return $this->adminRedirect('test_mail_ok');
         } catch (\Throwable $e) {
             $this->logger->warning($this->brandName() . ': test mail failed', [
                 'email' => $email,
@@ -1346,7 +1399,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
 
             $this->audit('test_mail_failed', $this->auditEmailContext($email));
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=test_mail_failed");
+            return $this->adminRedirect('test_mail_failed');
         }
     }
 
@@ -1439,7 +1492,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                 'user' => $userId,
             ]);
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=approval_group_required");
+            return $this->adminRedirect('approval_group_required');
         }
 
         $groupNames = [];
@@ -1493,7 +1546,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         }
 
         $this->logger->info($this->brandName() . ": user approved", ["user" => $userId, "groups" => $groupNames]);
-        return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=approved");
+        return $this->adminRedirect('approved');
     }
 
 
@@ -1548,7 +1601,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             "rejection_action" => $rejectionAction,
         ]);
 
-        return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=blacklisted");
+        return $this->adminRedirect('blacklisted');
     }
 
 
@@ -1559,7 +1612,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         $userId = trim((string)$this->request->getParam("userId", ""));
 
         if ($userId === "") {
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=user_delete_failed");
+            return $this->adminRedirect('user_delete_failed');
         }
 
         $protectedUserIds = array_filter(array_map(
@@ -1584,7 +1637,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                 'user' => $userId,
             ]);
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=user_delete_blocked");
+            return $this->adminRedirect('user_delete_blocked');
         }
 
         try {
@@ -1598,7 +1651,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                 'user' => $userId,
             ]);
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=user_deleted");
+            return $this->adminRedirect('user_deleted');
         } catch (\Throwable $e) {
             $this->logger->error($this->brandName() . ': user deletion failed', [
                 'user' => $userId,
@@ -1609,7 +1662,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                 'user' => $userId,
             ]);
 
-            return new RedirectResponse("/index.php/settings/admin/enhanced_registration?msg=user_delete_failed");
+            return $this->adminRedirect('user_delete_failed');
         }
     }
 
