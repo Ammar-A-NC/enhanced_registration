@@ -135,7 +135,6 @@ In auto mode, the browser language is used. Unsupported languages fall back to E
 - Use Direct LDAP password writer where possible.
 - If using the legacy bridge, do not expose it publicly without additional protection.
 - Use a strong bridge secret.
-- Do not commit real configuration values or secrets.
 - Keep LLDAP admin credentials restricted.
 - Review audit logs regularly.
 
