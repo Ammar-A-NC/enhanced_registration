@@ -2,11 +2,12 @@
 
 ## 0.2.4
 
-Hardening and UI polish release in development.
+Hardening and translation polish pre-release.
 
 - Add service-level approval guard against empty target groups.
 - Add blacklist users before removing them from the pending group.
 - Improve English UI translation coverage for admin pages and public templates.
+- Restrict English UI translation to visible text so form attributes and mail template contents are not rewritten.
 - Use language-aware default mail templates for English and German when no custom templates are saved.
 - Update HIBP user agent version.
 - Restrict GitHub Actions workflow token permissions.

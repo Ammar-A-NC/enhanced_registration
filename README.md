@@ -1,13 +1,30 @@
 # Enhanced Registration
 
-> **Current stable release:** `v0.2.3`
-> **Previous stable release:** `v0.2.2`
+> **Current stable release:** `v0.2.4`
+> **Previous stable release:** `v0.2.3`
 >
 > `v0.2.3` adds safer approval handling, optional local/LAN access restrictions, CSP-friendly success pages, generated route URLs, improved English UI translations, and security documentation cleanup.
 
 Enhanced Registration is a community Nextcloud app for self-hosted installations that use LLDAP as their identity backend and need an approval-based registration and password reset flow.
 
 It is not a replacement for every use case covered by the official Registration app. It targets a narrower setup: Nextcloud + LLDAP. Since v0.2.0, passwords are changed directly through LDAP; the bridge is only a legacy fallback.
+
+## v0.2.4 notes
+
+Version 0.2.4 is a hardening and translation polish pre-release.
+
+Highlights:
+
+- Approval and rejection flows are hardened.
+- Empty approval target groups are blocked at service level.
+- Blacklist assignment happens before pending-group removal.
+- English/German admin language switching is improved.
+- English UI translation is restricted to visible text, so form field names and mail template contents are no longer rewritten.
+- Language-aware default mail templates are available for German and English.
+- Default mail templates are prevented from becoming sticky custom values.
+- HIBP user agent version is updated.
+- GitHub Actions token permissions are restricted.
+- Legacy bridge security recommendations are clarified.
 
 ## v0.2.3 notes
 
