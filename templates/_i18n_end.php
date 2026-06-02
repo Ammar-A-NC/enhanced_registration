@@ -671,6 +671,19 @@ if ($lang === 'en') {
         'zur Anmeldung berechtigt sein' => 'be allowed to log in',
     ]);
 
+
+    $map = array_merge($map, [
+        // v0.2.4 users & permissions remaining fragments
+        'Der Löschbutton entfernt Users vollständig aus LLDAP.' => 'The delete button removes users completely from LLDAP.',
+        'Der Löschbutton entfernt Benutzer vollständig aus LLDAP.' => 'The delete button removes users completely from LLDAP.',
+        'Das ist nicht nur eine Gruppenänderung.' => 'This is not just a group change.',
+        'Protected user IDs werden blockiert.' => 'Protected user IDs are blocked.',
+        'Geschützte Benutzer-IDs werden blockiert.' => 'Protected user IDs are blocked.',
+        'Berechtigungen öffnen' => 'Open permissions',
+        'Benutzer aus LLDAP löschen' => 'Delete user from LLDAP',
+        'Benutzer wirklich vollständig aus LLDAP löschen? Diese Aktion kann nicht rückgängig gemacht werden.' => 'Really delete this user completely from LLDAP? This action cannot be undone.',
+    ]);
+
     $out = strtr($out, $map);
 }
 
