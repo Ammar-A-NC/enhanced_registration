@@ -684,7 +684,52 @@ if ($lang === 'en') {
         'Benutzer wirklich vollständig aus LLDAP löschen? Diese Aktion kann nicht rückgängig gemacht werden.' => 'Really delete this user completely from LLDAP? This action cannot be undone.',
     ]);
 
-    $out = strtr($out, $map);
+    $translateVisibleText = static function (string $html, array $map): string {
+        $parts = preg_split('/(<[^>]+>)/', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
+
+        if ($parts === false) {
+            return $html;
+        }
+
+        $result = '';
+        $skipDepth = 0;
+        $skipTags = [
+            'script' => true,
+            'style' => true,
+            'textarea' => true,
+        ];
+
+        foreach ($parts as $part) {
+            if ($part === '') {
+                continue;
+            }
+
+            if ($part[0] === '<') {
+                if (preg_match('/^<\s*\/\s*([a-zA-Z0-9:_-]+)/', $part, $matches)) {
+                    $tag = strtolower($matches[1]);
+
+                    if (isset($skipTags[$tag]) && $skipDepth > 0) {
+                        $skipDepth--;
+                    }
+                } elseif (preg_match('/^<\s*([a-zA-Z0-9:_-]+)/', $part, $matches)) {
+                    $tag = strtolower($matches[1]);
+
+                    if (isset($skipTags[$tag]) && !preg_match('/\/\s*>$/', $part)) {
+                        $skipDepth++;
+                    }
+                }
+
+                $result .= $part;
+                continue;
+            }
+
+            $result .= $skipDepth > 0 ? $part : strtr($part, $map);
+        }
+
+        return $result;
+    };
+
+    $out = $translateVisibleText($out, $map);
 }
 
 echo $out;
