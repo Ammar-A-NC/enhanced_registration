@@ -626,6 +626,51 @@ if ($lang === 'en') {
         'auswählen und speichern' => 'select and save',
     ]);
 
+
+    $map = array_merge($map, [
+        // v0.2.4 final mixed English/German admin fragments
+        'LDAP-Loginfilter-Hinweis: Die Pending-Gruppe sollte in Nextcloud nicht als erlaubte Login-Gruppe gelten.' => 'LDAP login filter note: The pending group should not be treated as an allowed login group in Nextcloud.',
+        'Die Pending-Gruppe sollte in Nextcloud nicht als erlaubte Login-Gruppe gelten.' => 'The pending group should not be treated as an allowed login group in Nextcloud.',
+        'Die Pending group sollte in Nextcloud nicht als erlaubte Login-Gruppe gelten.' => 'The pending group should not be treated as an allowed login group in Nextcloud.',
+        'Empfohlen ist ein Loginfilter, der nur freigegebene Zielgruppen erlaubt und Pending/Blacklist ausschließt.' => 'A login filter that only allows approved target groups and excludes pending/blacklist is recommended.',
+        'A login filter that only allows approved target groups and excludes pending/blacklist is recommended.' => 'A login filter that only allows approved target groups and excludes pending/blacklist is recommended.',
+
+        'E-Mail-Adresse im LDAP-Benutzer speichern' => 'Store email address in LDAP users',
+        'Email address im LDAP-Benutzer speichern' => 'Store email address in LDAP users',
+        'Email address im LDAP-Users speichern' => 'Store email address in LDAP users',
+        'E-Mail-Adresse im LDAP-Users speichern' => 'Store email address in LDAP users',
+        'Wenn aktiviert, wird die Registrierungs-E-Mail im LDAP-Feld gespeichert und kann von Nextcloud oder verbundenen Diensten übernommen werden.' => 'When enabled, the registration email is stored in the LDAP field and can be used by Nextcloud or connected services.',
+        'Wenn deaktiviert, können Freigabe-Mails und Passwortreset per E-Mail eingeschränkt sein, solange die E-Mail nicht anderweitig im LDAP gesetzt wird.' => 'When disabled, approval emails and password resets by email may be limited unless the email address is set elsewhere in LDAP.',
+
+        'Nur aus Pending-Gruppe entfernen' => 'Only remove from pending group',
+        'LDAP-Benutzer löschen' => 'Delete LDAP user',
+        'Legt fest, was passiert, wenn eine ausstehende Registrierung abgelehnt wird.' => 'Defines what happens when a pending registration is rejected.',
+        '„LDAP-Benutzer löschen“ entfernt den Benutzer vollständig aus LLDAP.' => '“Delete LDAP user” removes the user completely from LLDAP.',
+
+        'Diese Gruppen sind bei ausstehenden Registrierungen automatisch vorausgewählt.' => 'These groups are selected by default for pending registrations.',
+        'Sie können pro Benutzer weiterhin angepasst werden.' => 'They can still be changed per user.',
+        'Geschützte Gruppen-Namen' => 'Protected group names',
+        'Geschützte Gruppen-Präfixe' => 'Protected group prefixes',
+        'Geschützte Benutzer-IDs' => 'Protected user IDs',
+        'Kommagetrennt. Diese Gruppen werden nicht zur Auswahl angezeigt.' => 'Comma-separated. These groups are hidden from selection.',
+        'Kommagetrennt. Gruppen mit diesen Präfixen werden ausgeblendet.' => 'Comma-separated. Groups with these prefixes are hidden.',
+        'Kommagetrennt. Diese Benutzer werden unter „Benutzer & Berechtigungen“ nicht angezeigt.' => 'Comma-separated. These users are hidden from “Users & permissions”.',
+    ]);
+
+
+    $map = array_merge($map, [
+        // v0.2.4 setup warning translation
+        'Wichtig: Die Pending group darf im Nextcloud LDAP-Loginfilter nicht zur Anmeldung berechtigt sein.' => 'Important: The pending group must not be allowed to log in through the Nextcloud LDAP login filter.',
+        'Pending users sollen erst nach Admin-Freigabe durch ihre Target groups loginfähig werden.' => 'Pending users should only become able to log in after admin approval through their target groups.',
+
+        'Wichtig: Die Pending-Gruppe darf im Nextcloud LDAP-Loginfilter nicht zur Anmeldung berechtigt sein.' => 'Important: The pending group must not be allowed to log in through the Nextcloud LDAP login filter.',
+        'Ausstehende Benutzer sollen erst nach Admin-Freigabe durch ihre Zielgruppen loginfähig werden.' => 'Pending users should only become able to log in after admin approval through their target groups.',
+
+        'Admin-Freigabe' => 'admin approval',
+        'loginfähig werden' => 'become able to log in',
+        'zur Anmeldung berechtigt sein' => 'be allowed to log in',
+    ]);
+
     $out = strtr($out, $map);
 }
 
