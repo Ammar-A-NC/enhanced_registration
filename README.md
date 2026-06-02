@@ -1,7 +1,7 @@
 # Enhanced Registration
 
-> **Current stable release:** `v0.2.4`
-> **Previous stable release:** `v0.2.3`
+> **Current stable Pre-release:** `v0.2.4`
+> **Previous stable Pre-release:** `v0.2.3`
 >
 > `v0.2.3` adds safer approval handling, optional local/LAN access restrictions, CSP-friendly success pages, generated route URLs, improved English UI translations, and security documentation cleanup.
 
