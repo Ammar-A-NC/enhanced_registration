@@ -709,7 +709,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                 'method' => 'GET',
                 'timeout' => 5,
                 'ignore_errors' => true,
-                'header' => "User-Agent: EnhancedRegistration/0.2.2\\r\\n",
+                'header' => "User-Agent: EnhancedRegistration/0.2.4\\r\\n",
             ],
         ]);
 

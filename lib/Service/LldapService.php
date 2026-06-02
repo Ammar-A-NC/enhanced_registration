@@ -250,12 +250,17 @@ class LldapService {
 
     public function approveUser(string $userId, array $targetGroups): void {
         $pendingGroupId = $this->requiredGroupId('lldap_pending_group_id', 'Pending-Gruppe');
-        $targetGroups = array_values(array_unique(array_map('intval', $targetGroups)));
+        $targetGroups = array_values(array_unique(array_filter(
+            array_map('intval', $targetGroups),
+            static fn(int $groupId): bool => $groupId > 0 && $groupId !== $pendingGroupId
+        )));
+
+        if (empty($targetGroups)) {
+            throw new \RuntimeException('Keine gültige Zielgruppe für Freigabe ausgewählt.');
+        }
 
         foreach ($targetGroups as $groupId) {
-            if ($groupId > 0 && $groupId !== $pendingGroupId) {
-                $this->addUserToGroup($userId, $groupId);
-            }
+            $this->addUserToGroup($userId, $groupId);
         }
 
         $this->removeUserFromGroup($userId, $pendingGroupId);
@@ -265,8 +270,8 @@ class LldapService {
         $pendingGroupId = $this->requiredGroupId('lldap_pending_group_id', 'Pending-Gruppe');
         $blacklistGroupId = $this->requiredGroupId('lldap_blacklist_group_id', 'Blacklist-Gruppe');
 
-        $this->removeUserFromGroup($userId, $pendingGroupId);
         $this->addUserToGroup($userId, $blacklistGroupId);
+        $this->removeUserFromGroup($userId, $pendingGroupId);
     }
 
     public function rejectUser(string $userId, string $action): void {
@@ -277,14 +282,14 @@ class LldapService {
             return;
         }
 
-        $this->removeUserFromGroup($userId, $pendingGroupId);
-
         if ($action === 'remove_pending') {
+            $this->removeUserFromGroup($userId, $pendingGroupId);
             return;
         }
 
         $blacklistGroupId = $this->requiredGroupId('lldap_blacklist_group_id', 'Blacklist-Gruppe');
         $this->addUserToGroup($userId, $blacklistGroupId);
+        $this->removeUserFromGroup($userId, $pendingGroupId);
     }
 
     public function deleteUser(string $userId): void {

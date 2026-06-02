@@ -84,6 +84,13 @@ If the bridge is enabled:
 - firewall the endpoint to trusted systems only
 - monitor bridge logs for failed or unexpected requests
 
+
+### Legacy bridge password handling
+
+The legacy bridge is a fallback only. Deployments should prefer the Direct LDAP password writer.
+
+When the legacy bridge is used, password handling depends on the bridge implementation and surrounding host security. Avoid exposing the bridge publicly, restrict it to trusted hosts, and prefer Direct LDAP for production deployments.
+
 ## Production recommendations
 
 - Use HTTPS for all public Nextcloud access.
