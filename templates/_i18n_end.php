@@ -468,6 +468,84 @@ if ($lang === 'en') {
         'Passwort erfolgreich geändert.' => 'Password changed successfully.',
     ]);
 
+
+    $map = array_merge($map, [
+        // v0.2.4 remaining visible admin text polish
+        'Diese Übersicht zeigt, ob die wichtigsten Settings gesetzt sind. Direct LDAP ist der empfohlene Password Writer. Die Bridge ist nur noch Legacy/Fallback.' => 'This overview shows whether the most important settings are configured. Direct LDAP is the recommended password writer. The bridge is kept only as a legacy fallback.',
+        'Wichtig: Die Pending group darf im Nextcloud LDAP-Loginfilter nicht zur Anmeldung berechtigt sein. Pending users sollen erst nach Admin-Freigabe durch ihre Target groups loginfähig werden.' => 'Important: The pending group must not be allowed to log in through the Nextcloud LDAP login filter. Pending users should only become login-capable after admin approval through their target groups.',
+        'Diese Werte werden saved. Geheime Werte werden nicht im Klartext angezeigt.' => 'These values are saved. Secret values are not shown in plain text.',
+        'Diese Werte werden gespeichert. Geheime Werte werden nicht im Klartext angezeigt.' => 'These values are saved. Secret values are not shown in plain text.',
+
+        'Password Writer & Nextleitung' => 'Password writer & redirects',
+        'Direct LDAP password writer empfohlen' => 'Direct LDAP password writer recommended',
+        'Direct LDAP nutzt PHP-LDAP und ldap_exop_passwd direkt aus der Nextcloud-App. Die Bridge bleibt nur noch als Legacy-Fallback erhalten.' => 'Direct LDAP uses PHP-LDAP and ldap_exop_passwd directly from the Nextcloud app. The bridge is kept only as a legacy fallback.',
+        'ldap_connect: verfügbar · ldap_exop_passwd: verfügbar' => 'ldap_connect: available · ldap_exop_passwd: available',
+        'verfügbar' => 'available',
+        'Das ist die LDAP-Schnittstelle von LLDAP, nicht die GraphQL-URL.' => 'This is the LDAP endpoint of LLDAP, not the GraphQL URL.',
+        'Beispiel: dc=example,dc=com. Muss zu Ihrer LLDAP-Configuration passen.' => 'Example: dc=example,dc=com. Must match your LLDAP configuration.',
+        'Leer lassen, wenn der Admin-DN automatisch aus LLDAP admin user + Base DN gebaut werden soll.' => 'Leave empty if the admin DN should be built automatically from the LLDAP admin user and base DN.',
+        'Placeholders: {uid} für die User-ID, {base} für die Base DN.' => 'Placeholders: {uid} for the user ID, {base} for the base DN.',
+        'Nur nötig, wenn der Password Writer auf Bridge oder Fallback gestellt ist.' => 'Only required when the password writer is set to bridge or fallback.',
+        'Weiterleitung' => 'Redirects',
+        'Nextleitung' => 'Redirects',
+        'Redirect after successful registration' => 'Redirect after successful registration',
+        'Redirect after successful password reset' => 'Redirect after successful password reset',
+        'Empty = login URL' => 'Empty = login URL',
+
+        'Reject-Verhalten' => 'Reject behaviour',
+        'Add to blacklist' => 'Add to blacklist',
+        'Legt fest, was passiert, wenn eine ausstehende Registration rejected wird. „LDAP-Delete user“ entfernt den Users vollständig aus LLDAP.' => 'Defines what happens when a pending registration is rejected. “LDAP delete user” removes the user completely from LLDAP.',
+        'Legt fest, was passiert, wenn eine ausstehende Registrierung abgelehnt wird. „LDAP-Delete user“ entfernt den Benutzer vollständig aus LLDAP.' => 'Defines what happens when a pending registration is rejected. “LDAP delete user” removes the user completely from LLDAP.',
+        'LDAP-Loginfilter-Hinweis: Die Pending group sollte in Nextcloud nicht als erlaubte Login-Gruppe gelten. Empfohlen ist ein Loginfilter, der nur freigegebene Target groups erlaubt und Pending/Blacklist ausschließt.' => 'LDAP login filter note: The pending group should not be treated as an allowed login group in Nextcloud. A login filter that only allows approved target groups and excludes pending/blacklist is recommended.',
+        'Diese groups are selected by default for pending registrations. They can still be changed per user.' => 'These groups are selected by default for pending registrations. They can still be changed per user.',
+        'These groups are selected by default for pending registrations. They can still be changed per user.' => 'These groups are selected by default for pending registrations. They can still be changed per user.',
+
+        'Email address im LDAP-Users speichern' => 'Store email address in LDAP users',
+        'E-Mail-Adresse im LDAP-Users speichern' => 'Store email address in LDAP users',
+        'Email address im LDAP-User speichern' => 'Store email address in LDAP user',
+        'E-Mail-Adresse im LDAP-User speichern' => 'Store email address in LDAP user',
+
+        'Hinweis: Please do not remove or change required placeholders. They are checked when saving.' => 'Note: Please do not remove or change required placeholders. They are checked when saving.',
+        'Hinweis:' => 'Note:',
+        'Email bestätigen' => 'Confirm email',
+        'E-Mail bestätigen' => 'Confirm email',
+        'Subject: confirm account' => 'Subject: confirm account',
+        'Body: confirm account' => 'Body: confirm account',
+        'Subject: account approved' => 'Subject: account approved',
+        'Body: account approved' => 'Body: account approved',
+        'Subject: registration rejected' => 'Subject: registration rejected',
+        'Body: registration rejected' => 'Body: registration rejected',
+        'Subject: password reset' => 'Subject: password reset',
+        'Body: password reset' => 'Body: password reset',
+
+        'Hallo,' => 'Hello,',
+        'Hallo {displayName},' => 'Hello {displayName},',
+        'bitte bestätigen Sie Ihre Registrierung.' => 'please confirm your registration.',
+        'Alternativ können Sie diesen Link öffnen:' => 'Alternatively, you can open this link:',
+        'Ihr Konto wurde freigegeben.' => 'Your account has been approved.',
+        'Zugewiesene Groups: {groups}' => 'Assigned groups: {groups}',
+        'Zugewiesene Gruppen: {groups}' => 'Assigned groups: {groups}',
+        'Ihre Registrierung wurde abgelehnt.' => 'Your registration has been rejected.',
+        'Bei Fragen wenden Sie sich bitte an einen Administrator.' => 'If you have questions, please contact an administrator.',
+        'für Ihr Konto wurde ein Passwortreset angefordert.' => 'a password reset has been requested for your account.',
+        'Confirmation code: {code}' => 'Confirmation code: {code}',
+        'Bestätigungscode: {code}' => 'Confirmation code: {code}',
+
+        'settings_saved' => 'Settings saved',
+        'audit_settings_saved' => 'Audit settings saved',
+        'audit_cleared' => 'Audit log cleared',
+        'user_groups_saved' => 'User groups saved',
+        'approved' => 'Approved',
+        'blacklisted' => 'Blacklisted',
+        'approval_group_required' => 'Approval group required',
+        'test_mail_ok' => 'Test email sent',
+        'test_mail_failed' => 'Test email failed',
+        'lldap_test_ok' => 'LLDAP test successful',
+        'lldap_test_failed' => 'LLDAP test failed',
+        'bridge_test_ok' => 'Bridge test successful',
+        'bridge_test_failed' => 'Bridge test failed',
+    ]);
+
     $out = strtr($out, $map);
 }
 
