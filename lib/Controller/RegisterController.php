@@ -306,6 +306,65 @@ class RegisterController extends Controller {
         return trim($this->config->getAppValue('enhanced_registration', 'brand_name', 'Enhanced Registration')) ?: 'Enhanced Registration';
     }
 
+    private function normalizeMailTemplateLanguage(string $language): string {
+        $language = strtolower(trim($language));
+
+        if (str_starts_with($language, 'en')) {
+            return 'en';
+        }
+
+        if (str_starts_with($language, 'de')) {
+            return 'de';
+        }
+
+        return 'de';
+    }
+
+    private function mailTemplateDefaults(string $language): array {
+        $language = $this->normalizeMailTemplateLanguage($language);
+
+        $defaults = [
+            'de' => [
+                'mail_confirm_subject' => '{brand}: E-Mail bestätigen',
+                'mail_confirm_body' => "Hallo,\n\nbitte bestätigen Sie Ihre Registrierung.\n\nBestätigungscode: {code}\n\nAlternativ können Sie diesen Link öffnen:\n{link}\n\nWenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.",
+                'mail_approved_subject' => '{brand}: Konto freigegeben',
+                'mail_approved_body' => "Hallo {displayName},\n\nIhr Konto wurde freigegeben.\n\nZugewiesene Gruppen: {groups}\n\nAnmeldung: {loginUrl}",
+                'mail_rejected_subject' => '{brand}: Registrierung abgelehnt',
+                'mail_rejected_body' => "Hallo {displayName},\n\nIhre Registrierung wurde abgelehnt.\n\nBei Fragen wenden Sie sich bitte an einen Administrator.",
+                'mail_password_reset_subject' => '{brand}: Passwort zurücksetzen',
+                'mail_password_reset_body' => "Hallo,\n\nfür Ihr Konto wurde ein Passwortreset angefordert.\n\nBestätigungscode: {code}\n\nAlternativ können Sie diesen Link öffnen:\n{link}\n\nDer Code und Link sind 10 Minuten gültig und nur einmal verwendbar.\n\nWenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.",
+            ],
+            'en' => [
+                'mail_confirm_subject' => '{brand}: Confirm email',
+                'mail_confirm_body' => "Hello,\n\nplease confirm your registration.\n\nConfirmation code: {code}\n\nAlternatively, you can open this link:\n{link}\n\nIf you did not request this, you can ignore this email.",
+                'mail_approved_subject' => '{brand}: Account approved',
+                'mail_approved_body' => "Hello {displayName},\n\nYour account has been approved.\n\nAssigned groups: {groups}\n\nLogin: {loginUrl}",
+                'mail_rejected_subject' => '{brand}: Registration rejected',
+                'mail_rejected_body' => "Hello {displayName},\n\nYour registration has been rejected.\n\nIf you have questions, please contact an administrator.",
+                'mail_password_reset_subject' => '{brand}: Reset password',
+                'mail_password_reset_body' => "Hello,\n\na password reset has been requested for your account.\n\nConfirmation code: {code}\n\nAlternatively, you can open this link:\n{link}\n\nThe code and link are valid for 10 minutes and can only be used once.\n\nIf you did not request this, you can ignore this email.",
+            ],
+        ];
+
+        return $defaults[$language] ?? $defaults['de'];
+    }
+
+    private function defaultMailTemplate(string $key, string $fallback): string {
+        $language = $this->config->getAppValue(
+            'enhanced_registration',
+            'ui_language',
+            'auto'
+        );
+
+        if ($language === 'auto') {
+            $language = 'de';
+        }
+
+        $defaults = $this->mailTemplateDefaults($language);
+
+        return $defaults[$key] ?? $fallback;
+    }
+
     private function mailTemplate(string $key, string $default): string {
         $value = $this->config->getAppValue('enhanced_registration', $key, '');
 
