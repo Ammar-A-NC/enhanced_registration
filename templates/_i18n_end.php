@@ -587,6 +587,45 @@ if ($lang === 'en') {
         'Blacklist' => 'Blacklist',
     ]);
 
+
+    $map = array_merge($map, [
+        // v0.2.4 remaining German admin base strings
+        'Diese Übersicht zeigt, ob die wichtigsten Einstellungen gesetzt sind.' => 'This overview shows whether the most important settings are configured.',
+        'Direct LDAP ist der empfohlene Passwort-Writer.' => 'Direct LDAP is the recommended password writer.',
+        'Die Bridge ist nur noch Legacy/Fallback.' => 'The bridge is kept only as a legacy fallback.',
+        'Test-Mail-Empfänger' => 'Test email recipient',
+        'Test-Mail senden' => 'Send test email',
+        'Passwort-Writer & Weiterleitung' => 'Password writer & redirects',
+        'Passwort-Writer' => 'Password writer',
+        'Nur nötig, wenn der Passwort-Writer auf Bridge oder Fallback gestellt ist.' => 'Only required when the password writer is set to bridge or fallback.',
+        'Weiterleitung nach erfolgreicher Registrierung' => 'Redirect after successful registration',
+        'Weiterleitung nach erfolgreichem Passwortreset' => 'Redirect after successful password reset',
+        'Bitte Pending- und Blacklist-Gruppe auswählen und speichern.' => 'Please select and save the pending and blacklist groups.',
+        'Blacklist-Gruppe' => 'Blacklist group',
+        'Zur Blacklist hinzufügen' => 'Add to blacklist',
+        'Empfohlen ist ein Loginfilter, der nur freigegebene Zielgruppen erlaubt und Pending/Blacklist ausschließt.' => 'A login filter that only allows approved target groups and excludes pending/blacklist is recommended.',
+
+        // Common admin labels still visible in German
+        'Einstellungen gespeichert.' => 'Settings saved.',
+        'Registrierungsantrag freigegeben.' => 'Registration request approved.',
+        'Registrierungsantrag abgelehnt und zur Blacklist hinzugefügt.' => 'Registration request rejected and added to the blacklist.',
+        'LLDAP-Test fehlgeschlagen. Bitte Logs prüfen.' => 'LLDAP test failed. Please check the logs.',
+        'Bridge-Test fehlgeschlagen. Bitte Logs prüfen.' => 'Bridge test failed. Please check the logs.',
+        'Test-Mail wurde gesendet.' => 'Test email was sent.',
+        'Test-Mail konnte nicht gesendet werden. Bitte Logs prüfen.' => 'Test email could not be sent. Please check the logs.',
+        'Bitte eine gültige Test-Mail-Adresse eingeben.' => 'Please enter a valid test email address.',
+
+        // Partial phrases, useful because output is translated with strtr()
+        'wichtigen Einstellungen' => 'important settings',
+        'gesetzt sind' => 'are configured',
+        'empfohlene' => 'recommended',
+        'Weiterleitung' => 'Redirects',
+        'erfolgreicher Registrierung' => 'successful registration',
+        'erfolgreichem Passwortreset' => 'successful password reset',
+        'freigegebene Zielgruppen' => 'approved target groups',
+        'auswählen und speichern' => 'select and save',
+    ]);
+
     $out = strtr($out, $map);
 }
 
