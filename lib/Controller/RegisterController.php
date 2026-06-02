@@ -369,10 +369,22 @@ class RegisterController extends Controller {
         $value = $this->config->getAppValue('enhanced_registration', $key, '');
 
         if (trim($value) === '') {
-            return $default;
+            return $this->defaultMailTemplate($key, $default);
         }
 
         return $value;
+    }
+
+    private function isDefaultMailTemplateValue(string $key, string $value): bool {
+        foreach (['de', 'en'] as $language) {
+            $defaults = $this->mailTemplateDefaults($language);
+
+            if (array_key_exists($key, $defaults) && trim($defaults[$key]) === trim($value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function auditHash(string $value): string {
@@ -1343,6 +1355,12 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             }
 
             $value = trim((string)$this->request->getParam($key));
+
+            if (str_starts_with($key, "mail_") && $this->isDefaultMailTemplateValue($key, $value)) {
+                $this->config->deleteAppValue("enhanced_registration", $key);
+                continue;
+            }
+
             $this->config->setAppValue("enhanced_registration", $key, $value);
         }
 
