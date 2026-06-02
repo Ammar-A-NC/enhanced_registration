@@ -343,7 +343,7 @@ if (!is_array($auditEvents)) {
     <div class="nc-setup-status <?php echo $setupOk ? 'ok' : 'warn'; ?>">
         <h3>Setup-Status</h3>
         <p class="nc-muted">
-            Diese Übersicht zeigt, ob die wichtigsten Einstellungen gesetzt sind. Direct LDAP ist der empfohlene Password Writer. Die Bridge ist nur noch Legacy/Fallback.
+            Diese Übersicht zeigt, ob die wichtigsten Einstellungen gesetzt sind. Direct LDAP ist der empfohlene Passwort-Writer. Die Bridge ist nur noch Legacy/Fallback.
         </p>
         <p class="nc-admin-message warning">
             Wichtig: Die Pending-Gruppe darf im Nextcloud LDAP-Loginfilter nicht zur Anmeldung berechtigt sein.
@@ -438,9 +438,9 @@ if (!is_array($auditEvents)) {
                 </div>
 
                 <div class="nc-settings-card">
-                    <h4>Password Writer & Weiterleitung</h4>
+                    <h4>Passwort-Writer & Weiterleitung</h4>
 
-                    <label>Password Writer</label>
+                    <label>Passwort-Writer</label>
                     <select name="password_writer">
                         <option value="direct_ldap" <?php if (($settings['password_writer'] ?? 'direct_ldap') === 'direct_ldap') { echo 'selected'; } ?>>
                             Direct LDAP password writer empfohlen
@@ -492,7 +492,7 @@ if (!is_array($auditEvents)) {
                     <hr>
                     <h4>Legacy Bridge / Fallback</h4>
                     <p class="nc-muted">
-                        Nur nötig, wenn der Password Writer auf Bridge oder Fallback gestellt ist.
+                        Nur nötig, wenn der Passwort-Writer auf Bridge oder Fallback gestellt ist.
                     </p>
 
                     <label>Bridge URL</label>
@@ -501,10 +501,10 @@ if (!is_array($auditEvents)) {
                     <label>Login URL</label>
                     <input type="text" name="login_url" value="<?php p($settings['login_url'] ?? '/login'); ?>">
 
-                    <label>Redirect nach erfolgreicher Registrierung</label>
+                    <label>Weiterleitung nach erfolgreicher Registrierung</label>
                     <input type="text" name="registration_success_redirect_url" value="<?php p($settings['registration_success_redirect_url'] ?? ''); ?>" placeholder="Leer = Login URL">
 
-                    <label>Redirect nach erfolgreichem Passwortreset</label>
+                    <label>Weiterleitung nach erfolgreichem Passwortreset</label>
                     <input type="text" name="password_reset_success_redirect_url" value="<?php p($settings['password_reset_success_redirect_url'] ?? ''); ?>" placeholder="Leer = Login URL">
                 </div>
 

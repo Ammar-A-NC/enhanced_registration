@@ -571,6 +571,22 @@ if ($lang === 'en') {
         'E-Mail-Adresse im LDAP-Users speichern' => 'Store email address in LDAP users',
     ]);
 
+
+    $map = array_merge($map, [
+        // v0.2.4 normalized German admin base text
+        'Passwort-Writer & Weiterleitung' => 'Password writer & redirects',
+        'Passwort-Writer' => 'Password writer',
+        'Direct LDAP ist der empfohlene Passwort-Writer.' => 'Direct LDAP is the recommended password writer.',
+        'Nur nötig, wenn der Passwort-Writer auf Bridge oder Fallback gestellt ist.' => 'Only required when the password writer is set to bridge or fallback.',
+        'Weiterleitung nach erfolgreicher Registrierung' => 'Redirect after successful registration',
+        'Weiterleitung nach erfolgreichem Passwortreset' => 'Redirect after successful password reset',
+        'Test-Mail-Empfänger' => 'Test email recipient',
+        'Test-Mail senden' => 'Send test email',
+        'Bitte Pending- und Blacklist-Gruppe auswählen und speichern.' => 'Please select and save the pending and blacklist groups.',
+        'Zur Blacklist hinzufügen' => 'Add to blacklist',
+        'Blacklist' => 'Blacklist',
+    ]);
+
     $out = strtr($out, $map);
 }
 
