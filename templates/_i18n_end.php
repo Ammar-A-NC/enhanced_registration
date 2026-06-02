@@ -546,6 +546,31 @@ if ($lang === 'en') {
         'bridge_test_failed' => 'Bridge test failed',
     ]);
 
+
+    $map = array_merge($map, [
+        // v0.2.4 fragment translations for mixed admin texts
+        'Diese Übersicht zeigt, ob die wichtigsten Settings gesetzt sind.' => 'This overview shows whether the most important settings are configured.',
+        'Direct LDAP ist der empfohlene Password Writer.' => 'Direct LDAP is the recommended password writer.',
+        'Die Bridge ist nur noch Legacy/Fallback.' => 'The bridge is kept only as a legacy fallback.',
+        'Wichtig: Die Pending group darf im Nextcloud LDAP-Loginfilter nicht zur Anmeldung berechtigt sein.' => 'Important: The pending group must not be allowed to log in through the Nextcloud LDAP login filter.',
+        'Pending users sollen erst nach Admin-Freigabe durch ihre Target groups loginfähig werden.' => 'Pending users should only become login-capable after admin approval through their target groups.',
+        'Legt die Sprache für sichtbare App-Texte fest.' => 'Sets the language for visible app texts.',
+        'Bei „Automatisch“ wird die Browser-Sprache genutzt.' => 'When set to “Auto”, the browser language is used.',
+        'Mail-Vorlagen bleiben separat editierbar.' => 'Mail templates remain separately editable.',
+        'Muss zu Ihrer LLDAP-Configuration passen.' => 'Must match your LLDAP configuration.',
+        'für die User-ID' => 'for the user ID',
+        'für die Base DN' => 'for the base DN',
+        'Nur nötig, wenn der Password Writer auf Bridge oder Fallback gestellt ist.' => 'Only required when the password writer is set to bridge or fallback.',
+        'Reject-Verhalten' => 'Reject behaviour',
+        'Legt fest, was passiert, wenn eine ausstehende Registration rejected wird.' => 'Defines what happens when a pending registration is rejected.',
+        '„LDAP-Delete user“ entfernt den Users vollständig aus LLDAP.' => '“LDAP delete user” removes the user completely from LLDAP.',
+        'LDAP-Loginfilter-Hinweis:' => 'LDAP login filter note:',
+        'Die Pending group sollte in Nextcloud nicht als erlaubte Login-Gruppe gelten.' => 'The pending group should not be treated as an allowed login group in Nextcloud.',
+        'Empfohlen ist ein Loginfilter, der nur freigegebene Target groups erlaubt und Pending/Blacklist ausschließt.' => 'A login filter that only allows approved target groups and excludes pending/blacklist is recommended.',
+        'Email address im LDAP-Users speichern' => 'Store email address in LDAP users',
+        'E-Mail-Adresse im LDAP-Users speichern' => 'Store email address in LDAP users',
+    ]);
+
     $out = strtr($out, $map);
 }
 
