@@ -1281,6 +1281,12 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             return $this->adminRedirect('user_groups_saved');
         }
 
+        $requestedUiLanguage = trim((string)$this->request->getParam("ui_language", ""));
+
+        if (in_array($requestedUiLanguage, ["auto", "de", "en"], true)) {
+            $this->config->setAppValue("enhanced_registration", "ui_language", $requestedUiLanguage);
+        }
+
         $mailTemplateError = $this->validateMailTemplates();
 
         if ($mailTemplateError !== null) {
