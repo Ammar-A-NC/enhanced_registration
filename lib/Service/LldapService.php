@@ -216,8 +216,14 @@ class LldapService {
         return [];
     }
 
+    private function assertMutationOk(array $response, string $mutationName, string $errorMessage): void {
+        if (($response['data'][$mutationName]['ok'] ?? false) !== true) {
+            throw new \RuntimeException($errorMessage);
+        }
+    }
+
     public function addUserToGroup(string $userId, int $groupId): void {
-        $this->query(
+        $response = $this->query(
             'mutation AddUserToGroup($userId: String!, $groupId: Int!) {
                 addUserToGroup(userId: $userId, groupId: $groupId) { ok }
             }',
@@ -226,10 +232,12 @@ class LldapService {
                 'groupId' => $groupId,
             ]
         );
+
+        $this->assertMutationOk($response, 'addUserToGroup', 'LLDAP-Gruppe konnte nicht zugewiesen werden.');
     }
 
     public function removeUserFromGroup(string $userId, int $groupId): void {
-        $this->query(
+        $response = $this->query(
             'mutation RemoveUserFromGroup($userId: String!, $groupId: Int!) {
                 removeUserFromGroup(userId: $userId, groupId: $groupId) { ok }
             }',
@@ -238,6 +246,8 @@ class LldapService {
                 'groupId' => $groupId,
             ]
         );
+
+        $this->assertMutationOk($response, 'removeUserFromGroup', 'LLDAP-Gruppe konnte nicht entfernt werden.');
     }
 
     public function getGroups(): array {
@@ -293,7 +303,7 @@ class LldapService {
     }
 
     public function deleteUser(string $userId): void {
-        $this->query(
+        $response = $this->query(
             'mutation DeleteUser($userId: String!) {
                 deleteUser(userId: $userId) { ok }
             }',
@@ -301,6 +311,8 @@ class LldapService {
                 'userId' => $userId,
             ]
         );
+
+        $this->assertMutationOk($response, 'deleteUser', 'LLDAP-Benutzer konnte nicht gelöscht werden.');
     }
 
     public function getUserById(string $userId): ?array {
