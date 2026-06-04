@@ -9,6 +9,18 @@ Enhanced Registration is a community Nextcloud app for self-hosted installations
 
 It is not a replacement for every use case covered by the official Registration app. It targets a narrower setup: Nextcloud + LLDAP. Since v0.2.0, passwords are changed directly through LDAP; the bridge is only a legacy fallback.
 
+## v0.2.5 notes
+
+Version 0.2.5 is an app-store preparation and hardening development release.
+
+Highlights:
+
+- LLDAP GraphQL mutation success flags are checked explicitly.
+- Approval target groups are validated service-side against assignable groups.
+- Reject action UI messages are clearer.
+- The admin delete confirmation no longer uses inline JavaScript.
+- This release continues preparation for a future signed/App Store-ready release.
+
 ## v0.2.4 notes
 
 Version 0.2.4 is a hardening and translation polish pre-release.

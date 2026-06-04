@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.5
+
+App-store preparation and hardening release in development.
+
+- Check LLDAP GraphQL mutation success flags for group changes and user deletion.
+- Validate approval target groups service-side against assignable groups.
+- Clarify reject action UI messages.
+- Move admin delete confirmation from inline JavaScript to bundled JavaScript.
+- Continue preparation for a future signed/App Store-ready release.
+
 ## 0.2.4
 
 Hardening and translation polish pre-release.
