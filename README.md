@@ -1,9 +1,9 @@
 # Enhanced Registration
 
-> **Current stable Pre-release:** `v0.2.4`
-> **Previous stable Pre-release:** `v0.2.3`
+> **Current development pre-release:** `v0.2.5`
+> **Previous pre-release:** `v0.2.4`
 >
-> `v0.2.3` adds safer approval handling, optional local/LAN access restrictions, CSP-friendly success pages, generated route URLs, improved English UI translations, and security documentation cleanup.
+> `v0.2.5` continues app-store preparation and hardens LLDAP mutation handling, approval validation, reject UI messages, and CSP-friendly admin JavaScript.
 
 Enhanced Registration is a community Nextcloud app for self-hosted installations that use LLDAP as their identity backend and need an approval-based registration and password reset flow.
 
