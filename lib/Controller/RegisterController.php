@@ -1684,7 +1684,13 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             "rejection_action" => $rejectionAction,
         ]);
 
-        return $this->adminRedirect('blacklisted');
+        $rejectMessage = [
+            'blacklist' => 'rejected_blacklisted',
+            'remove_pending' => 'rejected_remove_pending',
+            'delete_user' => 'rejected_deleted',
+        ][$rejectionAction] ?? 'rejected_blacklisted';
+
+        return $this->adminRedirect($rejectMessage);
     }
 
 

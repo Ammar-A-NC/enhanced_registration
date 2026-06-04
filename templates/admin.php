@@ -91,6 +91,9 @@ $messages = [
     'approved' => 'Registrierungsantrag freigegeben.',
     'approval_group_required' => 'Bitte wählen Sie mindestens eine freigegebene Zielgruppe aus. Der Benutzer bleibt in Pending.',
     'blacklisted' => 'Registrierungsantrag abgelehnt und zur Blacklist hinzugefügt.',
+    'rejected_blacklisted' => 'Registrierungsantrag abgelehnt und zur Blacklist hinzugefügt.',
+    'rejected_remove_pending' => 'Registrierungsantrag abgelehnt und aus Pending entfernt.',
+    'rejected_deleted' => 'Registrierungsantrag abgelehnt und Benutzer aus LLDAP gelöscht.',
     'mail_template_invalid' => 'Mail-Vorlage nicht gespeichert: Ein Pflicht-Platzhalter fehlt oder wurde verändert.',
     'lldap_test_ok' => 'LLDAP-Verbindung erfolgreich getestet.',
     'lldap_test_failed' => 'LLDAP-Test fehlgeschlagen. Bitte Logs prüfen.',
@@ -112,6 +115,9 @@ $messageTypes = [
     'approved' => 'success',
     'approval_group_required' => 'error',
     'blacklisted' => 'warning',
+    'rejected_blacklisted' => 'warning',
+    'rejected_remove_pending' => 'warning',
+    'rejected_deleted' => 'warning',
     'mail_template_invalid' => 'error',
     'lldap_test_ok' => 'success',
     'lldap_test_failed' => 'error',
@@ -310,7 +316,7 @@ if (in_array($msg, ['settings_saved', 'mail_template_invalid', 'lldap_test_ok', 
     $initialAdminPage = 'audit';
 } elseif (in_array($msg, ['user_groups_saved', 'user_deleted', 'user_delete_failed', 'user_delete_blocked'], true)) {
     $initialAdminPage = 'users';
-} elseif (in_array($msg, ['approved', 'approval_group_required', 'blacklisted'], true)) {
+} elseif (in_array($msg, ['approved', 'approval_group_required', 'blacklisted', 'rejected_blacklisted', 'rejected_remove_pending', 'rejected_deleted'], true)) {
     $initialAdminPage = 'pending';
 }
 
@@ -786,7 +792,14 @@ if (!is_array($auditEvents)) {
                             <form method="POST" action="<?php p($urls['admin_blacklist'] ?? ''); ?>">
                     <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
                                 <input type="hidden" name="userId" value="<?php p($user['id'] ?? ''); ?>">
-                                <button type="submit" class="button nc-btn-blacklist">⛔ Blacklist</button>
+                                <?php
+                                $rejectButtonLabel = [
+                                    'blacklist' => '⛔ Zur Blacklist hinzufügen',
+                                    'remove_pending' => '⛔ Ablehnen / aus Pending entfernen',
+                                    'delete_user' => '⛔ Ablehnen / LDAP-Benutzer löschen',
+                                ][$rejectionAction] ?? '⛔ Ablehnen';
+                                ?>
+                                <button type="submit" class="button nc-btn-blacklist"><?php p($rejectButtonLabel); ?></button>
                             </form>
                         </div>
                 </div>

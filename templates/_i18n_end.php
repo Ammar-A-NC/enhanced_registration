@@ -729,6 +729,18 @@ if ($lang === 'en') {
         return $result;
     };
 
+
+    $map = array_merge($map, [
+        // v0.2.5 reject action messages
+        'Registrierungsantrag abgelehnt und zur Blacklist hinzugefügt.' => 'Registration request rejected and added to the blacklist.',
+        'Registrierungsantrag abgelehnt und aus Pending entfernt.' => 'Registration request rejected and removed from pending.',
+        'Registrierungsantrag abgelehnt und Benutzer aus LLDAP gelöscht.' => 'Registration request rejected and user deleted from LLDAP.',
+        'Zur Blacklist hinzufügen' => 'Add to blacklist',
+        'Ablehnen / aus Pending entfernen' => 'Reject / remove from pending',
+        'Ablehnen / LDAP-Benutzer löschen' => 'Reject / delete LDAP user',
+        'Ablehnen' => 'Reject',
+    ]);
+
     $out = $translateVisibleText($out, $map);
 }
 
