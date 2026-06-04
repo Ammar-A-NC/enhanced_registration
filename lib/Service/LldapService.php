@@ -260,9 +260,22 @@ class LldapService {
 
     public function approveUser(string $userId, array $targetGroups): void {
         $pendingGroupId = $this->requiredGroupId('lldap_pending_group_id', 'Pending-Gruppe');
+
+        $assignableGroupIds = [];
+
+        foreach ($this->getAssignableGroups() as $group) {
+            $groupId = (int)($group['id'] ?? 0);
+
+            if ($groupId > 0) {
+                $assignableGroupIds[$groupId] = true;
+            }
+        }
+
         $targetGroups = array_values(array_unique(array_filter(
             array_map('intval', $targetGroups),
-            static fn(int $groupId): bool => $groupId > 0 && $groupId !== $pendingGroupId
+            fn(int $groupId): bool => $groupId > 0
+                && $groupId !== $pendingGroupId
+                && isset($assignableGroupIds[$groupId])
         )));
 
         if (empty($targetGroups)) {
