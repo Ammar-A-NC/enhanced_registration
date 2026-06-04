@@ -1,13 +1,25 @@
 # Enhanced Registration
 
-> **Current development pre-release:** `v0.2.5`
-> **Previous pre-release:** `v0.2.4`
+> **Current development pre-release:** `v0.2.6`
+> **Previous pre-release:** `v0.2.5`
 >
-> `v0.2.5` continues app-store preparation and hardens LLDAP mutation handling, approval validation, reject UI messages, and CSP-friendly admin JavaScript.
+> `v0.2.6` adds reproducible release ZIP packaging with the correct app folder layout and continues App Store readiness work.
 
 Enhanced Registration is a community Nextcloud app for self-hosted installations that use LLDAP as their identity backend and need an approval-based registration and password reset flow.
 
 It is not a replacement for every use case covered by the official Registration app. It targets a narrower setup: Nextcloud + LLDAP. Since v0.2.0, passwords are changed directly through LDAP; the bridge is only a legacy fallback.
+
+## v0.2.6 notes
+
+Version 0.2.6 is an app-store readiness and release packaging development release.
+
+Highlights:
+
+- Reproducible release ZIP builder.
+- Release archives use the correct `enhanced_registration/` top-level folder.
+- Development-only files are excluded from release archives.
+- Generated ZIP contents and app version are validated automatically.
+- This release continues preparation for a future signed/App Store-ready release.
 
 ## v0.2.5 notes
 

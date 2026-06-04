@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.6
+
+App-store readiness and release packaging development release.
+
+- Add reproducible release ZIP builder.
+- Build release archives with the correct `enhanced_registration/` top-level folder.
+- Exclude development-only files from release archives.
+- Validate generated release ZIP contents and app version.
+- Continue preparation for a future signed/App Store-ready release.
+
 ## 0.2.5
 
 App-store preparation and hardening release in development.
