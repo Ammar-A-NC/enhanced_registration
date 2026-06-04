@@ -76,6 +76,7 @@
 <?php script('enhanced_registration', 'admin-tabs-v3'); ?>
 
 <?php
+script('enhanced_registration', 'admin-confirm');
 $settings = $_['settings'] ?? [];
 $urls = $_['urls'] ?? [];
 $groups = $_['groups'] ?? [];
@@ -889,7 +890,7 @@ if (!is_array($auditEvents)) {
                     <form
                         method="POST"
                         action="<?php p($urls['admin_delete_user'] ?? ''); ?>"
-                        onsubmit="return confirm('Benutzer wirklich vollständig aus LLDAP löschen? Diese Aktion kann nicht rückgängig gemacht werden.');"
+                        data-confirm-delete-user="Benutzer wirklich vollständig aus LLDAP löschen? Diese Aktion kann nicht rückgängig gemacht werden."
                         style="margin-top:12px;"
                     >
                         <input type="hidden" name="requesttoken" value="<?php p($requestToken); ?>">
