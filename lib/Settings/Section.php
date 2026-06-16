@@ -19,7 +19,7 @@ class Section implements IIconSection {
     }
 
     public function getName(): string {
-        return $this->l->t('Enhanced Registration');
+        return $this->l->t('Passwort ändern');
     }
 
     public function getPriority(): int {
