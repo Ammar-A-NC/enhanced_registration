@@ -63,7 +63,7 @@ $urls = $_['urls'] ?? []; include __DIR__ . '/_i18n_start.php'; ?>
     </form>
 
     <p style="text-align:center;margin-top:18px;">
-        <a href="/login" class="button">Zurück zum Login</a>
+        <a href="<?php p($_['login'] ?? '/login'); ?>" class="button">Zurück zum Login</a>
     </p>
 </div>
 

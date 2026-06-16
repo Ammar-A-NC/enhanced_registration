@@ -1,13 +1,31 @@
 # Enhanced Registration
 
-> **Current development pre-release:** `v0.2.6`
-> **Previous pre-release:** `v0.2.5`
+> **Current development pre-release:** `v0.2.7`
+> **Previous pre-release:** `v0.2.6`
 >
-> `v0.2.6` adds reproducible release ZIP packaging with the correct app folder layout and continues App Store readiness work.
+> `v0.2.7` adds personal LDAP password changes from the user settings, Nextcloud 34 compatibility metadata, and additional hardening for approval/rejection flows.
 
 Enhanced Registration is a community Nextcloud app for self-hosted installations that use LLDAP as their identity backend and need an approval-based registration and password reset flow.
 
 It is not a replacement for every use case covered by the official Registration app. It targets a narrower setup: Nextcloud + LLDAP. Since v0.2.0, passwords are changed directly through LDAP; the bridge is only a legacy fallback.
+
+## v0.2.7 notes
+
+Version 0.2.7 is a password settings and hardening development release.
+
+Highlights:
+
+- Adds a personal settings page where users can change their own LDAP password.
+- Verifies the current LDAP password before writing a new password.
+- Adds visible success and error feedback for personal password changes.
+- Adds German/English text handling for the personal password settings page.
+- Keeps the admin settings section named `Enhanced Registration` while showing the personal section as `Passwort ändern` / `Change password`.
+- Adds Nextcloud 34 compatibility metadata.
+- Checks the LLDAP `createUser.id` response when creating pending users.
+- Uses the configured login URL in public templates instead of hardcoded `/login` links.
+- Makes approval and rejection notification emails non-fatal after LDAP actions have succeeded.
+- Hides the legacy `remove_pending` rejection option for new configurations while keeping backwards compatibility.
+- Uses the app metadata version for the HIBP user agent.
 
 ## v0.2.6 notes
 
@@ -84,6 +102,7 @@ Version 0.2.0 adds the Direct LDAP password writer, keeps the bridge as a legacy
 - Configurable default groups for approved users
 - Password reset flow
 - Direct LDAP password writer for setting and changing LLDAP passwords
+- Personal settings page for users to change their own LDAP password
 - Legacy password bridge fallback
 - Configurable mail templates
 - Configurable password policy
@@ -96,7 +115,7 @@ Version 0.2.0 adds the Direct LDAP password writer, keeps the bridge as a legacy
 
 ## Requirements
 
-- Nextcloud 33
+- Nextcloud 33 or 34
 - PHP compatible with your Nextcloud version
 - LLDAP
 - Working Nextcloud mail configuration

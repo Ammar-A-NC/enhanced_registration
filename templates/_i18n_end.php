@@ -237,6 +237,10 @@ if ($lang === 'en') {
 
         // Audit settings save
         'Audit-Einstellungen gespeichert.' => 'Audit settings saved.',
+        'Legacy: Nur aus Pending-Gruppe entfernen (nicht empfohlen)' => 'Legacy: Only remove from pending group (not recommended)',
+        'Legacy-Modus: remove_pending entfernt den Benutzer nur aus der Pending-Gruppe. Für neue Konfigurationen wird Blacklist oder LDAP-Benutzer löschen empfohlen.' => 'Legacy mode: remove_pending only removes the user from the pending group. For new configurations, blacklist or delete LDAP user is recommended.',
+        'Empfohlen: Zur Blacklist hinzufügen. Der alte Modus „Nur aus Pending-Gruppe entfernen“ wird für neue Konfigurationen nicht mehr angeboten.' => 'Recommended: Add to blacklist. The old mode “Only remove from pending group” is no longer offered for new configurations.',
+        '⛔ Ablehnen / aus Pending entfernen (Legacy)' => '⛔ Reject / remove from pending (Legacy)',
     ];
 
 

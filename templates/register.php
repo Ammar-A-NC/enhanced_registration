@@ -33,7 +33,7 @@ style('core', 'guest');
     </form>
 
     <p style="text-align:center;margin-top:18px;">
-        <a href="/login">Zurück zur Anmeldung</a>
+        <a href="<?php p($_['login'] ?? '/login'); ?>">Zurück zur Anmeldung</a>
     </p>
 </div>
 <?php include __DIR__ . '/_i18n_end.php'; ?>

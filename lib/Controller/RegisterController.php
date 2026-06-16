@@ -17,6 +17,7 @@ use OCP\IRequest;
 use OCP\Mail\IMailer;
 use OCP\IURLGenerator;
 use OCP\IConfig;
+use OCP\IUserSession;
 use OCP\IDBConnection;
 use Psr\Log\LoggerInterface;
 
@@ -30,6 +31,7 @@ class RegisterController extends Controller {
         private IMailer $mailer,
         private IURLGenerator $urlGenerator,
         private IConfig $config,
+        private IUserSession $userSession,
         private IDBConnection $db,
         private LoggerInterface $logger
     ) {
@@ -65,6 +67,13 @@ class RegisterController extends Controller {
 
         if (!isset($params['urls'])) {
             $params['urls'] = $this->templateUrls();
+        }
+
+        if (!isset($params['login'])) {
+            $params['login'] = $this->safeRedirectUrl(
+                $this->config->getAppValue('enhanced_registration', 'login_url', '/login'),
+                '/login'
+            );
         }
 
         $params = array_merge($this->passwordPolicyTemplateParams(), $params);
@@ -104,6 +113,29 @@ class RegisterController extends Controller {
         }
 
         return $fallback;
+    }
+
+    private function appendQueryParams(string $url, array $params): string {
+        $fragment = '';
+
+        if (str_contains($url, '#')) {
+            [$url, $fragment] = explode('#', $url, 2);
+            $fragment = '#' . $fragment;
+        }
+
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return $url . $separator . http_build_query($params) . $fragment;
+    }
+
+    private function personalSettingsRedirect(string $status, string $message): RedirectResponse {
+        $returnUrl = (string)$this->request->getParam('return_url', '/settings/user/enhanced_registration');
+        $returnUrl = $this->safeRedirectUrl($returnUrl, '/settings/user/enhanced_registration');
+
+        return new RedirectResponse($this->appendQueryParams($returnUrl, [
+            'enhanced_registration_status' => $status,
+            'enhanced_registration_message' => $message,
+        ]));
     }
 
     private function defaultAccessNetworks(): string {
@@ -743,6 +775,21 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         return $length;
     }
 
+    private function appVersion(): string {
+        $infoXml = dirname(__DIR__, 2) . '/appinfo/info.xml';
+        $contents = is_file($infoXml) ? file_get_contents($infoXml) : false;
+
+        if (is_string($contents) && preg_match('/<version>([^<]+)<\\/version>/', $contents, $matches)) {
+            $version = trim((string)$matches[1]);
+
+            if ($version !== '') {
+                return $version;
+            }
+        }
+
+        return 'unknown';
+    }
+
     private function validatePasswordPolicy(string $password): ?string {
         $requirements = [];
         $minLength = $this->passwordMinLength();
@@ -780,7 +827,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                 'method' => 'GET',
                 'timeout' => 5,
                 'ignore_errors' => true,
-                'header' => "User-Agent: EnhancedRegistration/0.2.4\\r\\n",
+                'header' => "User-Agent: EnhancedRegistration/" . $this->appVersion() . "\\r\\n",
             ],
         ]);
 
@@ -1625,7 +1672,19 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                     'loginUrl' => $loginUrl,
                 ]
             ));
-            $this->mailer->send($message);
+            try {
+                $this->mailer->send($message);
+            } catch (\Throwable $e) {
+                $this->logger->warning($this->brandName() . ': approval email could not be sent after user approval', [
+                    'user' => $userId,
+                    'email' => (string)($user['email'] ?? ''),
+                    'exception' => $e->getMessage(),
+                ]);
+
+                $this->audit('approval_mail_failed', [
+                    'user' => $userId,
+                ]);
+            }
         }
 
         $this->logger->info($this->brandName() . ": user approved", ["user" => $userId, "groups" => $groupNames]);
@@ -1676,7 +1735,21 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                     'userId' => $userId,
                 ]
             ));
-            $this->mailer->send($message);
+            try {
+                $this->mailer->send($message);
+            } catch (\Throwable $e) {
+                $this->logger->warning($this->brandName() . ': rejection email could not be sent after user rejection', [
+                    'user' => $userId,
+                    'email' => (string)($user['email'] ?? ''),
+                    'rejection_action' => $rejectionAction,
+                    'exception' => $e->getMessage(),
+                ]);
+
+                $this->audit('rejection_mail_failed', [
+                    'user' => $userId,
+                    'rejection_action' => $rejectionAction,
+                ]);
+            }
         }
 
         $this->logger->warning($this->brandName() . ": user rejected", [
@@ -1996,6 +2069,63 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         return $this->noStoreTemplate('passreset_success', [
             'redirect_url' => $redirectUrl
         ]);
+    }
+
+    #[NoAdminRequired]
+    public function personalPassword(): RedirectResponse {
+        $user = $this->userSession->getUser();
+
+        if ($user === null) {
+            return $this->personalSettingsRedirect('error', 'not_logged_in');
+        }
+
+        $userId = $user->getUID();
+        $currentPassword = (string)$this->request->getParam('current_password', '');
+        $password = (string)$this->request->getParam('password', '');
+        $passwordConfirm = (string)$this->request->getParam('password_confirm', '');
+
+        if ($currentPassword === '') {
+            return $this->personalSettingsRedirect('error', 'current_password_required');
+        }
+
+        if ($password !== $passwordConfirm) {
+            return $this->personalSettingsRedirect('error', 'password_mismatch');
+        }
+
+        $passwordPolicyMessage = $this->validatePasswordPolicy($password);
+
+        if ($passwordPolicyMessage !== null) {
+            return $this->personalSettingsRedirect('error', 'password_policy');
+        }
+
+        try {
+            if (!$this->lldapService->verifyUserPassword($userId, $currentPassword)) {
+                return $this->personalSettingsRedirect('error', 'current_password_invalid');
+            }
+
+            $this->lldapService->setUserPassword($userId, $password);
+
+            $this->audit('personal_password_changed', [
+                'user' => $userId,
+            ]);
+
+            $this->logger->info($this->brandName() . ': personal LDAP password changed', [
+                'user' => $userId,
+            ]);
+
+            return $this->personalSettingsRedirect('success', 'password_changed');
+        } catch (\Throwable $e) {
+            $this->logger->error($this->brandName() . ': personal LDAP password change failed', [
+                'user' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->audit('personal_password_change_failed', [
+                'user' => $userId,
+            ]);
+
+            return $this->personalSettingsRedirect('error', 'password_change_failed');
+        }
     }
 
 }
