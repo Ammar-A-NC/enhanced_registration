@@ -22,5 +22,7 @@ return [
         ['name' => 'register#verifypassreset', 'url' => '/passreset/verify', 'verb' => 'GET'],
         ['name' => 'register#setnewpassword', 'url' => '/passreset/set', 'verb' => 'POST'],
         ['name' => 'register#resendpassreset', 'url' => '/passreset/resend', 'verb' => 'POST'],
+
+        ['name' => 'register#personalPassword', 'url' => '/personal/password', 'verb' => 'POST'],
     ],
 ];

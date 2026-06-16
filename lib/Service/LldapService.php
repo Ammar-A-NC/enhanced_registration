@@ -463,6 +463,37 @@ class LldapService {
         return 'LDAP-Fehler ' . (string)$errno . ': ' . (string)$error;
     }
 
+    public function verifyUserPassword(string $userId, string $password): bool {
+        if ($password === '') {
+            return false;
+        }
+
+        if (!function_exists('ldap_connect') || !function_exists('ldap_bind')) {
+            throw new \RuntimeException('PHP LDAP ist nicht verfügbar.');
+        }
+
+        $url = $this->lldapLdapUrl();
+        $userDn = $this->lldapUserDn($userId);
+        $connection = @ldap_connect($url);
+
+        if (!$connection) {
+            throw new \RuntimeException('LDAP-Verbindung konnte nicht initialisiert werden.');
+        }
+
+        try {
+            @ldap_set_option($connection, LDAP_OPT_PROTOCOL_VERSION, 3);
+            @ldap_set_option($connection, LDAP_OPT_REFERRALS, 0);
+
+            if (defined('LDAP_OPT_NETWORK_TIMEOUT')) {
+                @ldap_set_option($connection, LDAP_OPT_NETWORK_TIMEOUT, 5);
+            }
+
+            return @ldap_bind($connection, $userDn, $password) === true;
+        } finally {
+            @ldap_unbind($connection);
+        }
+    }
+
     public function setUserPassword(string $userId, string $password): void {
         $mode = $this->passwordWriterMode();
 
