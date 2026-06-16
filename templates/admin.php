@@ -580,9 +580,20 @@ if (!is_array($auditEvents)) {
                     <?php $rejectionAction = (string)($settings['rejection_action'] ?? 'blacklist'); ?>
                     <select name="rejection_action">
                         <option value="blacklist" <?php if ($rejectionAction === 'blacklist') { echo 'selected'; } ?>>Zur Blacklist hinzufügen</option>
-                        <option value="remove_pending" <?php if ($rejectionAction === 'remove_pending') { echo 'selected'; } ?>>Nur aus Pending-Gruppe entfernen</option>
+                        <?php if ($rejectionAction === 'remove_pending'): ?>
+                            <option value="remove_pending" selected>Legacy: Nur aus Pending-Gruppe entfernen (nicht empfohlen)</option>
+                        <?php endif; ?>
                         <option value="delete_user" <?php if ($rejectionAction === 'delete_user') { echo 'selected'; } ?>>LDAP-Benutzer löschen</option>
                     </select>
+                    <?php if ($rejectionAction === 'remove_pending'): ?>
+                        <p class="settings-hint warning">
+                            Legacy-Modus: remove_pending entfernt den Benutzer nur aus der Pending-Gruppe. Für neue Konfigurationen wird Blacklist oder LDAP-Benutzer löschen empfohlen.
+                        </p>
+                    <?php else: ?>
+                        <p class="settings-hint">
+                            Empfohlen: Zur Blacklist hinzufügen. Der alte Modus „Nur aus Pending-Gruppe entfernen“ wird für neue Konfigurationen nicht mehr angeboten.
+                        </p>
+                    <?php endif; ?>
                     <p class="nc-muted">
                         Legt fest, was passiert, wenn eine ausstehende Registrierung abgelehnt wird.
                         „LDAP-Benutzer löschen“ entfernt den Benutzer vollständig aus LLDAP.
@@ -796,7 +807,7 @@ if (!is_array($auditEvents)) {
                                 <?php
                                 $rejectButtonLabel = [
                                     'blacklist' => '⛔ Zur Blacklist hinzufügen',
-                                    'remove_pending' => '⛔ Ablehnen / aus Pending entfernen',
+                                    'remove_pending' => '⛔ Ablehnen / aus Pending entfernen (Legacy)',
                                     'delete_user' => '⛔ Ablehnen / LDAP-Benutzer löschen',
                                 ][$rejectionAction] ?? '⛔ Ablehnen';
                                 ?>
