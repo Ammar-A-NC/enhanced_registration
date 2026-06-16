@@ -67,6 +67,13 @@ class RegisterController extends Controller {
             $params['urls'] = $this->templateUrls();
         }
 
+        if (!isset($params['login'])) {
+            $params['login'] = $this->safeRedirectUrl(
+                $this->config->getAppValue('enhanced_registration', 'login_url', '/login'),
+                '/login'
+            );
+        }
+
         $params = array_merge($this->passwordPolicyTemplateParams(), $params);
 
         return new TemplateResponse("enhanced_registration", $template, $params, "guest");
@@ -743,6 +750,21 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         return $length;
     }
 
+    private function appVersion(): string {
+        $infoXml = dirname(__DIR__, 2) . '/appinfo/info.xml';
+        $contents = is_file($infoXml) ? file_get_contents($infoXml) : false;
+
+        if (is_string($contents) && preg_match('/<version>([^<]+)<\\/version>/', $contents, $matches)) {
+            $version = trim((string)$matches[1]);
+
+            if ($version !== '') {
+                return $version;
+            }
+        }
+
+        return 'unknown';
+    }
+
     private function validatePasswordPolicy(string $password): ?string {
         $requirements = [];
         $minLength = $this->passwordMinLength();
@@ -780,7 +802,7 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                 'method' => 'GET',
                 'timeout' => 5,
                 'ignore_errors' => true,
-                'header' => "User-Agent: EnhancedRegistration/0.2.4\\r\\n",
+                'header' => "User-Agent: EnhancedRegistration/" . $this->appVersion() . "\\r\\n",
             ],
         ]);
 

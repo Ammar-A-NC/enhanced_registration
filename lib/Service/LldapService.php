@@ -159,7 +159,7 @@ class LldapService {
         $created = false;
 
         try {
-            $this->query(
+            $response = $this->query(
                 'mutation CreateUser($user: CreateUserInput!) {
                     createUser(user: $user) { id }
                 }',
@@ -169,6 +169,21 @@ class LldapService {
             );
 
             $created = true;
+
+            $createdUserId = (string)($response['data']['createUser']['id'] ?? '');
+
+            if ($createdUserId === '') {
+                throw new \RuntimeException('LLDAP-Benutzer wurde nicht bestätigt: createUser.id fehlt.');
+            }
+
+            if ($createdUserId !== $username) {
+                $this->logger->warning('Enhanced Registration: LLDAP createUser returned unexpected id', [
+                    'expected' => $username,
+                    'actual' => $createdUserId,
+                ]);
+
+                throw new \RuntimeException('LLDAP-Benutzer wurde mit unerwarteter ID erstellt.');
+            }
 
             $this->setUserPassword($username, $password);
             $this->addUserToGroup($username, $group);
