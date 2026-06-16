@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.7
+
+Password settings and hardening development release.
+
+- Add a personal settings page for changing the current user's LDAP password.
+- Verify the current LDAP password before writing a new LDAP password.
+- Add visible success and error feedback for personal password changes.
+- Add German/English text handling for the personal password settings page.
+- Separate admin and personal settings sections so the user-facing section can be named `Passwort ändern` / `Change password`.
+- Add Nextcloud 34 compatibility metadata.
+- Check the LLDAP `createUser.id` response when creating pending users.
+- Use the configured login URL in public templates instead of hardcoded `/login` links.
+- Make approval and rejection notification emails non-fatal after LDAP actions have succeeded.
+- Hide the legacy `remove_pending` rejection option for new configurations while keeping backwards compatibility.
+- Use the app metadata version for the HIBP user agent.
+
 ## 0.2.6
 
 App-store readiness and release packaging development release.
