@@ -1672,7 +1672,19 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                     'loginUrl' => $loginUrl,
                 ]
             ));
-            $this->mailer->send($message);
+            try {
+                $this->mailer->send($message);
+            } catch (\Throwable $e) {
+                $this->logger->warning($this->brandName() . ': approval email could not be sent after user approval', [
+                    'user' => $userId,
+                    'email' => (string)($user['email'] ?? ''),
+                    'exception' => $e->getMessage(),
+                ]);
+
+                $this->audit('approval_mail_failed', [
+                    'user' => $userId,
+                ]);
+            }
         }
 
         $this->logger->info($this->brandName() . ": user approved", ["user" => $userId, "groups" => $groupNames]);
@@ -1723,7 +1735,21 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
                     'userId' => $userId,
                 ]
             ));
-            $this->mailer->send($message);
+            try {
+                $this->mailer->send($message);
+            } catch (\Throwable $e) {
+                $this->logger->warning($this->brandName() . ': rejection email could not be sent after user rejection', [
+                    'user' => $userId,
+                    'email' => (string)($user['email'] ?? ''),
+                    'rejection_action' => $rejectionAction,
+                    'exception' => $e->getMessage(),
+                ]);
+
+                $this->audit('rejection_mail_failed', [
+                    'user' => $userId,
+                    'rejection_action' => $rejectionAction,
+                ]);
+            }
         }
 
         $this->logger->warning($this->brandName() . ": user rejected", [
