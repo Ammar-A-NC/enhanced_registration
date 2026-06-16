@@ -10,12 +10,12 @@
   <namespace>EnhancedRegistration</namespace>
   <category>tools</category>
   <dependencies>
-    <nextcloud min-version="33" max-version="33"/>
+    <nextcloud min-version="33" max-version="34"/>
   </dependencies>
   <settings>
     <admin>OCA\EnhancedRegistration\Settings\Admin</admin>
     <admin-section>OCA\EnhancedRegistration\Settings\Section</admin-section>
-      <personal>OCA\EnhancedRegistration\Settings\Personal</personal>
+    <personal>OCA\EnhancedRegistration\Settings\Personal</personal>
     <personal-section>OCA\EnhancedRegistration\Settings\Section</personal-section>
   </settings>
 </info>
