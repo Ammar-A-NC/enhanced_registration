@@ -15,5 +15,7 @@
   <settings>
     <admin>OCA\EnhancedRegistration\Settings\Admin</admin>
     <admin-section>OCA\EnhancedRegistration\Settings\Section</admin-section>
+      <personal>OCA\EnhancedRegistration\Settings\Personal</personal>
+    <personal-section>OCA\EnhancedRegistration\Settings\Section</personal-section>
   </settings>
 </info>
