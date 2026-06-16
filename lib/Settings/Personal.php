@@ -33,6 +33,7 @@ class Personal implements ISettings {
             'user_id' => $user !== null ? $user->getUID() : '',
             'status' => (string)$this->request->getParam('enhanced_registration_status', ''),
             'message' => (string)$this->request->getParam('enhanced_registration_message', ''),
+            'ui_language' => $this->config->getAppValue('enhanced_registration', 'ui_language', 'auto'),
             'password_min_length' => $this->config->getAppValue('enhanced_registration', 'password_min_length', '12'),
             'password_require_uppercase' => $this->config->getAppValue('enhanced_registration', 'password_require_uppercase', '1'),
             'password_require_lowercase' => $this->config->getAppValue('enhanced_registration', 'password_require_lowercase', '1'),
