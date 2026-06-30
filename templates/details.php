@@ -16,7 +16,22 @@ $urls = $_['urls'] ?? []; include __DIR__ . '/_i18n_start.php'; ?>
         <input type="hidden" name="token" value="<?php p($_["token"] ?? ""); ?>">
         <input type="hidden" name="email" value="<?php p($_["email"] ?? ""); ?>">
 
-        <input type="text" name="username" placeholder="Anmeldename" value="<?php p($_["username"] ?? ""); ?>" required>
+        <input
+            type="text"
+            name="username"
+            placeholder="Anmeldename"
+            value="<?php p($_["username"] ?? ""); ?>"
+            required
+            minlength="3"
+            maxlength="32"
+            pattern="[a-z][a-z0-9._-]{2,31}"
+            autocapitalize="none"
+            autocomplete="username"
+            spellcheck="false"
+        >
+        <p class="settings-hint" style="font-size:13px;margin-top:-8px;">
+            Nur Kleinbuchstaben, Zahlen, Punkt, Unterstrich und Bindestrich. Beispiel: max.mustermann
+        </p>
         <input type="text" name="displayname" placeholder="Vollständiger Name" value="<?php p($_["displayname"] ?? ""); ?>" required>
         <input type="text" name="phone" placeholder="Telefonnummer" value="<?php p($_["phone"] ?? ""); ?>">
 

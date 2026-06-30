@@ -9,6 +9,12 @@ $email = $_['email'] ?? '';
 <div class="guest-box">
     <h2>Bestätigungscode eingeben</h2>
 
+    <?php if (!empty($_["message"])): ?>
+        <p class="settings-hint" style="font-size:13px;margin-bottom:12px;">
+            <?php p($_["message"]); ?>
+        </p>
+    <?php endif; ?>
+
     <p>
         Bitte prüfe deine E-Mail:
         <strong><?php p($email); ?></strong>

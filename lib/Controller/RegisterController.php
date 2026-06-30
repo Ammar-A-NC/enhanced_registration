@@ -921,7 +921,24 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
         try {
             $registrationTokens = $this->registrationService->createRegistration($email);
         } catch (\Throwable $e) {
-            return new RedirectResponse($this->routeUrl('already'));
+            $error = $e->getMessage();
+
+            $this->logger->warning($this->brandName() . ': registration creation failed', [
+                'email' => $email,
+                'error' => $error,
+            ]);
+
+            if (stripos($error, 'aktiver Bestätigungscode') !== false) {
+                return $this->noStoreTemplate('checkmail', [
+                    'email' => $email,
+                    'message' => 'Für diese E-Mail-Adresse wurde bereits ein aktiver Bestätigungscode angefordert. Bitte prüfen Sie Ihr Postfach oder fordern Sie den Code erneut an.'
+                ]);
+            }
+
+            return $this->noStoreTemplate('register', [
+                'email' => $email,
+                'message' => 'Registrierung konnte nicht gestartet werden. Bitte versuchen Sie es später erneut.'
+            ]);
         }
 
         try {
@@ -946,7 +963,10 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
 
         $this->audit('registration_code_requested', $this->auditEmailContext($email));
 
-        return new RedirectResponse($this->routeUrl('checkMail', ['email' => $email]));
+        return $this->noStoreTemplate('checkmail', [
+            'email' => $email,
+            'message' => 'Bestätigungscode wurde gesendet. Bitte prüfen Sie Ihre E-Mail.'
+        ]);
     }
 
 
@@ -1121,14 +1141,14 @@ Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren
             ], 'guest');
         }
 
-        if (!preg_match('/^[A-Za-z][A-Za-z0-9._-]{2,31}$/', $username)) {
+        if (!preg_match('/^[a-z][a-z0-9._-]{2,31}$/', $username)) {
             return $this->noStoreTemplate('details', [
                 'email' => $email,
                 'token' => $token,
-                'username' => $username,
+                'username' => strtolower($username),
                 'displayname' => $displayname,
                 'phone' => $phone,
-                'message' => 'Ungültiger Anmeldename. Erlaubt sind 3–32 Zeichen: Buchstaben, Zahlen, Punkt, Unterstrich und Bindestrich. Das erste Zeichen muss ein Buchstabe sein.'
+                'message' => 'Ungültiger Anmeldename. Bitte verwenden Sie nur Kleinbuchstaben, Zahlen, Punkt, Unterstrich und Bindestrich. Erlaubt sind 3–32 Zeichen; das erste Zeichen muss ein Kleinbuchstabe sein.'
             ], 'guest');
         }
 
