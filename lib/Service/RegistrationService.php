@@ -22,6 +22,10 @@ class RegistrationService {
         return bin2hex(random_bytes(32));
     }
 
+    private function legacyTokenMarker(string $token): string {
+        return $this->tokenHash($token);
+    }
+
     public function createRegistration(string $email): array {
         $check = $this->db->getQueryBuilder();
         $check->select('id')
@@ -37,6 +41,7 @@ class RegistrationService {
         $manualCode = $this->newManualCode();
         $linkToken = $this->newLinkToken();
         $expires = time() + 600;
+        $legacyTokenMarker = $this->legacyTokenMarker($linkToken);
 
         $query = $this->db->getQueryBuilder();
 
@@ -44,7 +49,7 @@ class RegistrationService {
             ->values([
                 'email' => $query->createNamedParameter($email),
                 'verification_code' => $query->createNamedParameter(''),
-                'token' => $query->createNamedParameter(''),
+                'token' => $query->createNamedParameter($legacyTokenMarker),
                 'token_hash' => $query->createNamedParameter($this->tokenHash($linkToken)),
                 'code_hash' => $query->createNamedParameter($this->tokenHash($manualCode)),
                 'expires_at' => $query->createNamedParameter($expires),
@@ -130,12 +135,13 @@ class RegistrationService {
             $manualCode = $this->newManualCode();
             $linkToken = $this->newLinkToken();
             $expires = time() + 600;
+            $legacyTokenMarker = $this->legacyTokenMarker($linkToken);
 
             $query = $this->db->getQueryBuilder();
 
             $query->update('enhanced_registrations')
                 ->set('verification_code', $query->createNamedParameter(''))
-                ->set('token', $query->createNamedParameter(''))
+                ->set('token', $query->createNamedParameter($legacyTokenMarker))
                 ->set('code_hash', $query->createNamedParameter($this->tokenHash($manualCode)))
                 ->set('token_hash', $query->createNamedParameter($this->tokenHash($linkToken)))
                 ->set('expires_at', $query->createNamedParameter($expires))

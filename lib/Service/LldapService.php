@@ -238,17 +238,34 @@ class LldapService {
     }
 
     public function addUserToGroup(string $userId, int $groupId): void {
-        $response = $this->query(
-            'mutation AddUserToGroup($userId: String!, $groupId: Int!) {
-                addUserToGroup(userId: $userId, groupId: $groupId) { ok }
-            }',
-            [
-                'userId' => $userId,
-                'groupId' => $groupId,
-            ]
-        );
+        try {
+            $response = $this->query(
+                'mutation AddUserToGroup($userId: String!, $groupId: Int!) {
+                    addUserToGroup(userId: $userId, groupId: $groupId) { ok }
+                }',
+                [
+                    'userId' => $userId,
+                    'groupId' => $groupId,
+                ]
+            );
+        } catch (\RuntimeException $e) {
+            $message = $e->getMessage();
 
-        $this->assertMutationOk($response, 'addUserToGroup', 'LLDAP-Gruppe konnte nicht zugewiesen werden.');
+            if (stripos($message, 'UNIQUE constraint failed: memberships.user_id, memberships.group_id') !== false) {
+                $this->logger->info('Enhanced Registration: LLDAP membership already exists; treating addUserToGroup as success', [
+                    'user' => $userId,
+                    'group_id' => $groupId,
+                ]);
+
+                return;
+            }
+
+            throw $e;
+        }
+
+        if (($response['data']['addUserToGroup']['ok'] ?? false) !== true) {
+            throw new \RuntimeException('LLDAP-Gruppe konnte nicht hinzugefügt werden.');
+        }
     }
 
     public function removeUserFromGroup(string $userId, int $groupId): void {
