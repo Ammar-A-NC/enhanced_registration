@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.8
+
+Registration flow and LDAP approval hotfix.
+
+- Show the confirmation-code page directly after requesting a registration code instead of relying on a browser redirect.
+- Keep legacy registration `token` values unique while storing only hash-based credentials.
+- Require lowercase registration usernames to match LLDAP/Nextcloud normalization expectations.
+- Treat already-existing LLDAP group memberships as successful during approval.
+- Clarify that Nextcloud `ldapLoginFilter`, not only `ldapUserFilter`, must restrict logins to approved groups.
+
+
 ## 0.2.7
 
 Password settings and hardening development release.

@@ -353,7 +353,9 @@ if (!is_array($auditEvents)) {
             Diese Übersicht zeigt, ob die wichtigsten Einstellungen gesetzt sind. Direct LDAP ist der empfohlene Passwort-Writer. Die Bridge ist nur noch Legacy/Fallback.
         </p>
         <p class="nc-admin-message warning">
-            Wichtig: Die Pending-Gruppe darf im Nextcloud LDAP-Loginfilter nicht zur Anmeldung berechtigt sein.
+            Wichtig: Der Nextcloud <code>ldapLoginFilter</code> muss die freigegebenen Zielgruppen enthalten.
+            Der <code>ldapUserFilter</code> allein verhindert Logins nicht zuverlässig.
+            Die Pending-Gruppe darf im Nextcloud LDAP-Loginfilter nicht zur Anmeldung berechtigt sein.
             Ausstehende Benutzer sollen erst nach Admin-Freigabe durch ihre Zielgruppen loginfähig werden.
         </p>
 
