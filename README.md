@@ -3,7 +3,7 @@
 > **Current development pre-release:** `v0.2.7`
 > **Previous pre-release:** `v0.2.6`
 >
-> `v0.2.8` is a registration and approval hotfix: it fixes the confirmation-code flow, enforces lowercase registration usernames, handles already-existing LLDAP group memberships during approval, and clarifies that Nextcloud `ldapLoginFilter` must restrict logins to approved groups.
+> `v0.2.9` adds Nextcloud 35 compatibility while retaining the registration and approval hardening from v0.2.8: it fixes the confirmation-code flow, enforces lowercase registration usernames, handles already-existing LLDAP group memberships during approval, and clarifies that Nextcloud `ldapLoginFilter` must restrict logins to approved groups.
 
 Enhanced Registration is a community Nextcloud app for self-hosted installations that use LLDAP as their identity backend and need an approval-based registration and password reset flow.
 

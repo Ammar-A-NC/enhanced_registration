@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.9
+
+Nextcloud 35 compatibility release.
+
+- Add compatibility metadata for Nextcloud 35.
+- Keep compatibility with Nextcloud 33 and 34.
+- Update the app metadata license identifier to SPDX `AGPL-3.0-or-later`.
+
+
 ## 0.2.8
 
 Registration flow and LDAP approval hotfix.
